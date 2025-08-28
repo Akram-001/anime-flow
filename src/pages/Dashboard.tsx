@@ -442,11 +442,10 @@ export default function Dashboard() {
   </div>
 
   {/* النص أسفل الجدول */}
-  <div className="mt-30 text-sm text-muted-foreground">
+  div className="mt-16 text-center text-muted-foreground">
     Note: Please manage users responsibly.
   </div>
 </Card>
-</div>
 </Layout>
 );
 }
