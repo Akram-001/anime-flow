@@ -402,15 +402,15 @@ export default function Dashboard() {
    <Card className="p-6">
   <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
 
-  <div className="overflow-x-auto">
-    <table className="min-w-full table-auto border-collapse text-sm">
-      <thead>
-        <tr className="border-b bg-muted">
-          <th className="p-2 text-left">Email</th>
-          <th className="p-2">Role</th>
-          <th className="p-2">Banned</th>
-          <th className="p-2">Actions</th>
-        </tr>
+  <div className="overflow-x-auto max-w-full">
+  <table className="w-full table-auto border-collapse text-sm">
+    <thead>
+      <tr className="border-b bg-muted">
+        <th className="p-2 text-left">Email</th>
+        <th className="p-2">Role</th>
+        <th className="p-2">Banned</th>
+        <th className="p-2">Actions</th>
+      </tr>
       </thead>
 
       <tbody>
