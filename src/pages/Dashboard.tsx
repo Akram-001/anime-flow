@@ -401,9 +401,8 @@ export default function Dashboard() {
         {/* 👤 إدارة المستخدمين */}
  <Card className="p-6 w-full max-w-full overflow-hidden">
   <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
-
-  <div className="w-full overflow-x-auto">
-    <table className="w-full min-w-[600px] table-auto border-collapse text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
       <thead>
         <tr className="border-b bg-muted">
           <th className="p-2 text-left">Email</th>
