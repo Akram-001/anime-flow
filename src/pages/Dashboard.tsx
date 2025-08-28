@@ -440,12 +440,11 @@ export default function Dashboard() {
       </tbody>
     </table>
   </div>
-
-  {/* النص أسفل الجدول */}
+</Card>
+ {/* النص أسفل الجدول */}
   <div className="mt-16 text-center text-muted-foreground">
     Note: Please manage users responsibly.
   </div>
-</Card>
 </Layout>
 );
 }
