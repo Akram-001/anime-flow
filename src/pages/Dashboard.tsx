@@ -399,6 +399,7 @@ export default function Dashboard() {
         )}
 
         {/* 👤 إدارة المستخدمين */}
+<Layout>
  <Card className="p-6 w-full max-w-full overflow-hidden">
   <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
           <div className="overflow-x-auto">
