@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner"; // للإشعارات
 import {
   collection,
   addDoc,
@@ -21,52 +22,57 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
-import { db, serverTimestamp } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-// ⭐ واجهة المستخدم
-interface User {
-  id: string;
-  email: string;
-  createdAt?: any;
-}
-
+// 📌 الواجهة الرئيسية للوحة التحكم
 export default function Dashboard() {
   const { user } = useAuth();
+  const [animes, setAnimes] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // --- Anime States
+  // 📌 الحقول لإضافة أنمي
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [image, setImage] = useState("");
   const [category, setCategory] = useState("Action");
   const [featured, setFeatured] = useState(false);
-  const [animes, setAnimes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [tags, setTags] = useState("");
+  const [rating, setRating] = useState("PG-13");
 
-  // --- Filters
+  // 📌 بحث + فلترة + Pagination
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("All");
+  const [page, setPage] = useState(1);
+  const perPage = 5;
 
-  // --- Episodes
+  // 📌 الحلقات
   const [epTitle, setEpTitle] = useState("");
   const [epNumber, setEpNumber] = useState("");
   const [epVideo, setEpVideo] = useState("");
   const [epDuration, setEpDuration] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  // --- Users
-  const [users, setUsers] = useState<User[]>([]);
-
-  // 🌀 جلب الأنميات
+  // 📌 جلب الأنميات
   const fetchAnimes = async () => {
     const snapshot = await getDocs(collection(db, "animes"));
-    setAnimes(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    setAnimes(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
-  // 🌀 جلب المستخدمين
+  // 📌 جلب المستخدمين (لو حبيت تديرهم)
   const fetchUsers = async () => {
     const snapshot = await getDocs(collection(db, "users"));
-    setUsers(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as User)));
+    setUsers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
   useEffect(() => {
@@ -77,7 +83,7 @@ export default function Dashboard() {
   // ✅ إضافة أنمي
   const handleAddAnime = async () => {
     if (!title || !desc || !image) {
-      alert("Please fill all fields");
+      toast.error("Please fill all fields");
       return;
     }
     setLoading(true);
@@ -88,6 +94,8 @@ export default function Dashboard() {
         image,
         category,
         featured,
+        tags: tags.split(",").map((t) => t.trim()),
+        rating,
         createdAt: serverTimestamp(),
       });
       setTitle("");
@@ -95,32 +103,34 @@ export default function Dashboard() {
       setImage("");
       setCategory("Action");
       setFeatured(false);
+      setTags("");
+      setRating("PG-13");
       fetchAnimes();
-      alert("Anime added successfully!");
-    } catch (error) {
-      console.error(error);
-      alert("Error adding anime");
+      toast.success("Anime added successfully!");
+    } catch (err) {
+      toast.error("Error adding anime");
     }
     setLoading(false);
   };
 
   // ✅ حذف أنمي
-  const handleDeleteAnime = async (id: string) => {
+  const handleDelete = async (id: string) => {
     await deleteDoc(doc(db, "animes", id));
     fetchAnimes();
+    toast.success("Anime deleted");
   };
 
-  // ✅ تغيير Featured
+  // ✅ تعديل Featured
   const toggleFeatured = async (id: string, value: boolean) => {
-    const ref = doc(db, "animes", id);
-    await updateDoc(ref, { featured: value });
+    await updateDoc(doc(db, "animes", id), { featured: value });
     fetchAnimes();
+    toast.success("Updated successfully");
   };
 
   // ✅ إضافة حلقة
   const handleAddEpisode = async (animeId: string) => {
     if (!epTitle || !epNumber || !epVideo) {
-      alert("Fill all episode fields");
+      toast.error("Fill all episode fields");
       return;
     }
     try {
@@ -131,31 +141,39 @@ export default function Dashboard() {
         duration: epDuration,
         createdAt: serverTimestamp(),
       });
-      alert("Episode added ✅");
       setEpTitle("");
       setEpNumber("");
       setEpVideo("");
       setEpDuration("");
       setExpanded(null);
-    } catch (err) {
-      console.error("Error adding episode:", err);
+      toast.success("Episode added");
+    } catch {
+      toast.error("Error adding episode");
     }
   };
 
-  // ✅ فلترة الأنميات
+  // ✅ إدارة المستخدمين (تغيير رول / حظر)
+  const toggleBanUser = async (id: string, banned: boolean) => {
+    await updateDoc(doc(db, "users", id), { banned });
+    fetchUsers();
+    toast.success(banned ? "User banned" : "User unbanned");
+  };
+
+  // ✅ فلترة وبحث + Pagination
   const filteredAnimes = animes.filter((anime) => {
-    const matchSearch = anime.title.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = anime.title?.toLowerCase().includes(search.toLowerCase());
     const matchCat = filterCat === "All" || anime.category === filterCat;
     return matchSearch && matchCat;
   });
+  const paginated = filteredAnimes.slice((page - 1) * perPage, page * perPage);
 
-  // ✅ حذف مستخدم
-  const handleDeleteUser = async (id: string) => {
-    await deleteDoc(doc(db, "users", id));
-    fetchUsers();
-  };
+  // 📊 بيانات للإحصائيات
+  const chartData = [
+    { name: "Animes", value: animes.length },
+    { name: "Users", value: users.length },
+  ];
 
-  // 🔒 السماح فقط للإدمن
+  // السماح فقط للإدمن
   if (!user || user.email !== "akramgourri2007@gmail.com") {
     return (
       <Layout>
@@ -168,12 +186,25 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 space-y-10">
-        <h1 className="text-3xl font-bold mb-6">⚙️ Admin Dashboard</h1>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <h1 className="text-2xl font-bold">⚙️ Admin Dashboard</h1>
 
-        {/* ================== إضافة أنمي ================== */}
+        {/* 📊 الإحصائيات */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-2">Statistics</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#4f46e5" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* ➕ إضافة أنمي */}
         <Card className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold">➕ Add New Anime</h2>
+          <h2 className="text-lg font-semibold">Add New Anime</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label>Title</Label>
@@ -193,7 +224,7 @@ export default function Dashboard() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent className="bg-white shadow-lg">
+                <SelectContent>
                   <SelectItem value="Action">Action</SelectItem>
                   <SelectItem value="Drama">Drama</SelectItem>
                   <SelectItem value="Comedy">Comedy</SelectItem>
@@ -202,9 +233,27 @@ export default function Dashboard() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Tags (comma separated)</Label>
+              <Input value={tags} onChange={(e) => setTags(e.target.value)} />
+            </div>
+            <div>
+              <Label>Rating</Label>
+              <Select value={rating} onValueChange={setRating}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="G">G</SelectItem>
+                  <SelectItem value="PG">PG</SelectItem>
+                  <SelectItem value="PG-13">PG-13</SelectItem>
+                  <SelectItem value="R">R</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center space-x-2">
               <Switch checked={featured} onCheckedChange={setFeatured} />
-              <Label>Featured (show on homepage)</Label>
+              <Label>Featured</Label>
             </div>
           </div>
           <Button onClick={handleAddAnime} disabled={loading}>
@@ -212,7 +261,7 @@ export default function Dashboard() {
           </Button>
         </Card>
 
-        {/* ================== فلترة وبحث ================== */}
+        {/* 🔍 بحث + فلترة */}
         <div className="flex items-center gap-4">
           <Input
             placeholder="Search anime..."
@@ -223,7 +272,7 @@ export default function Dashboard() {
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
-            <SelectContent className="bg-white shadow-lg">
+            <SelectContent>
               <SelectItem value="All">All</SelectItem>
               <SelectItem value="Action">Action</SelectItem>
               <SelectItem value="Drama">Drama</SelectItem>
@@ -234,13 +283,13 @@ export default function Dashboard() {
           </Select>
         </div>
 
-        {/* ================== جدول الأنميات ================== */}
+        {/* 📋 قائمة الأنميات */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">📋 Anime List</h2>
+          <h2 className="text-lg font-semibold mb-4">Anime List</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-gray-100">
+                <tr className="border-b">
                   <th className="p-2 text-left">Title</th>
                   <th className="p-2">Category</th>
                   <th className="p-2">Featured</th>
@@ -248,7 +297,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredAnimes.map((anime) => (
+                {paginated.map((anime) => (
                   <tr key={anime.id} className="border-b">
                     <td className="p-2">{anime.title}</td>
                     <td className="p-2">{anime.category}</td>
@@ -268,18 +317,18 @@ export default function Dashboard() {
                         {expanded === anime.id ? "Close" : "Add Episode"}
                       </Button>
                       <Button
-                        variant="destructive"
                         size="sm"
-                        onClick={() => handleDeleteAnime(anime.id)}
+                        variant="destructive"
+                        onClick={() => handleDelete(anime.id)}
                       >
                         Delete
                       </Button>
                     </td>
                   </tr>
                 ))}
-                {filteredAnimes.length === 0 && (
+                {paginated.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                    <td colSpan={4} className="p-4 text-center">
                       No animes found
                     </td>
                   </tr>
@@ -287,9 +336,27 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          <div className="flex justify-between mt-4">
+            <Button
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Prev
+            </Button>
+            <span>Page {page}</span>
+            <Button
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page * perPage >= filteredAnimes.length}
+            >
+              Next
+            </Button>
+          </div>
         </Card>
 
-        {/* ================== إضافة حلقة ================== */}
+        {/* 📺 إضافة حلقة */}
         {expanded && (
           <Card className="p-6 space-y-4">
             <h2 className="text-lg font-semibold">Add Episode</h2>
@@ -325,18 +392,22 @@ export default function Dashboard() {
                 />
               </div>
             </div>
-            <Button onClick={() => handleAddEpisode(expanded)}>Save Episode</Button>
+            <Button onClick={() => handleAddEpisode(expanded)}>
+              Save Episode
+            </Button>
           </Card>
         )}
 
-        {/* ================== جدول المستخدمين ================== */}
+        {/* 👤 إدارة المستخدمين */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">👤 Users</h2>
+          <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-gray-100">
+                <tr className="border-b">
                   <th className="p-2 text-left">Email</th>
+                  <th className="p-2">Role</th>
+                  <th className="p-2">Banned</th>
                   <th className="p-2">Actions</th>
                 </tr>
               </thead>
@@ -344,20 +415,22 @@ export default function Dashboard() {
                 {users.map((u) => (
                   <tr key={u.id} className="border-b">
                     <td className="p-2">{u.email}</td>
+                    <td className="p-2">{u.role || "user"}</td>
+                    <td className="p-2">{u.banned ? "Yes" : "No"}</td>
                     <td className="p-2">
                       <Button
-                        variant="destructive"
                         size="sm"
-                        onClick={() => handleDeleteUser(u.id)}
+                        variant="destructive"
+                        onClick={() => toggleBanUser(u.id, !u.banned)}
                       >
-                        Delete
+                        {u.banned ? "Unban" : "Ban"}
                       </Button>
                     </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={2} className="p-4 text-center text-muted-foreground">
+                    <td colSpan={4} className="p-4 text-center">
                       No users found
                     </td>
                   </tr>
