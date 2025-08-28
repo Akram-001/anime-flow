@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/component     
+import { Switch } from "@/component/ui/switch";
           <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
