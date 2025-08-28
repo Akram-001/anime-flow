@@ -402,9 +402,9 @@ export default function Dashboard() {
    <Card className="p-6">
   <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
 
-  <div className="overflow-x-auto max-w-full">
-  <table className="w-full table-auto border-collapse text-sm">
-    <thead>
+  <div className="w-full overflow-x-auto">
+    <table className="w-full min-w-[600px] table-auto border-collapse text-sm">
+      <thead>
       <tr className="border-b bg-muted">
         <th className="p-2 text-left">Email</th>
         <th className="p-2">Role</th>
