@@ -442,7 +442,7 @@ export default function Dashboard() {
     </table>
   </div>
 </Card>
-
+</div>
 </Layout>
 );
 }
