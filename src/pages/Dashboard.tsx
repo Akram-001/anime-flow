@@ -445,3 +445,7 @@ export default function Dashboard() {
     ⚠️ Note: Please manage users responsibly.
   </div>
 </Card>
+      </div>
+    </Layout>
+  );
+}
