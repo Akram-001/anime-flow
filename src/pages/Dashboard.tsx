@@ -1,8 +1,8 @@
 // src/pages/Dashboard.tsx
-import React, { useState } from "react";
-import { Layout } from "../components/Layout";
-import { Card } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,149 +13,194 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner"; // للإشعارات
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-// 🟢 أنواع البيانات
-interface Anime {
-  id: number;
-  title: string;
-  category: string;
-  featured: boolean;
-}
-
-interface Episode {
-  id: number;
-  animeId: number;
-  title: string;
-  number: number;
-  video: string;
-  duration: string;
-}
-
-interface User {
-  id: number;
-  email: string;
-  role?: string;
-  banned?: boolean;
-}
-
+// 📌 الواجهة الرئيسية للوحة التحكم
 export default function Dashboard() {
-  // أنميات
-  const [animes, setAnimes] = useState<Anime[]>([]);
-  const [title, setTitle] = useState("");
-  const [image, setImage] = useState("");
-  const [desc, setDesc] = useState("");
-  const [category, setCategory] = useState("");
-  const [tags, setTags] = useState("");
-  const [rating, setRating] = useState("");
-  const [featured, setFeatured] = useState(false);
+  const { user } = useAuth();
+  const [animes, setAnimes] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // بحث + فلترة
+  // 📌 الحقول لإضافة أنمي
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [image, setImage] = useState("");
+  const [category, setCategory] = useState("Action");
+  const [featured, setFeatured] = useState(false);
+  const [tags, setTags] = useState("");
+  const [rating, setRating] = useState("PG-13");
+
+  // 📌 بحث + فلترة + Pagination
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("All");
-
-  // صفحات
   const [page, setPage] = useState(1);
   const perPage = 5;
 
-  // حلقات
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [expanded, setExpanded] = useState<number | null>(null);
+  // 📌 الحلقات
   const [epTitle, setEpTitle] = useState("");
   const [epNumber, setEpNumber] = useState("");
   const [epVideo, setEpVideo] = useState("");
   const [epDuration, setEpDuration] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-  // يوزرات
-  const [users, setUsers] = useState<User[]>([
-    { id: 1, email: "admin@mail.com", role: "admin", banned: false },
-    { id: 2, email: "user@mail.com", role: "user", banned: false },
-  ]);
+  // 📌 جلب الأنميات
+  const fetchAnimes = async () => {
+    const snapshot = await getDocs(collection(db, "animes"));
+    setAnimes(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+  };
 
-  // 📊 إحصائيات
-  const stats = [
-    { label: "Total Animes", value: animes.length },
-    { label: "Total Episodes", value: episodes.length },
-    { label: "Users", value: users.length },
+  // 📌 جلب المستخدمين (لو حبيت تديرهم)
+  const fetchUsers = async () => {
+    const snapshot = await getDocs(collection(db, "users"));
+    setUsers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+  };
+
+  useEffect(() => {
+    fetchAnimes();
+    fetchUsers();
+  }, []);
+
+  // ✅ إضافة أنمي
+  const handleAddAnime = async () => {
+    if (!title || !desc || !image) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "animes"), {
+        title,
+        description: desc,
+        image,
+        category,
+        featured,
+        tags: tags.split(",").map((t) => t.trim()),
+        rating,
+        createdAt: serverTimestamp(),
+      });
+      setTitle("");
+      setDesc("");
+      setImage("");
+      setCategory("Action");
+      setFeatured(false);
+      setTags("");
+      setRating("PG-13");
+      fetchAnimes();
+      toast.success("Anime added successfully!");
+    } catch (err) {
+      toast.error("Error adding anime");
+    }
+    setLoading(false);
+  };
+
+  // ✅ حذف أنمي
+  const handleDelete = async (id: string) => {
+    await deleteDoc(doc(db, "animes", id));
+    fetchAnimes();
+    toast.success("Anime deleted");
+  };
+
+  // ✅ تعديل Featured
+  const toggleFeatured = async (id: string, value: boolean) => {
+    await updateDoc(doc(db, "animes", id), { featured: value });
+    fetchAnimes();
+    toast.success("Updated successfully");
+  };
+
+  // ✅ إضافة حلقة
+  const handleAddEpisode = async (animeId: string) => {
+    if (!epTitle || !epNumber || !epVideo) {
+      toast.error("Fill all episode fields");
+      return;
+    }
+    try {
+      await addDoc(collection(db, "animes", animeId, "episodes"), {
+        title: epTitle,
+        number: Number(epNumber),
+        videoUrl: epVideo,
+        duration: epDuration,
+        createdAt: serverTimestamp(),
+      });
+      setEpTitle("");
+      setEpNumber("");
+      setEpVideo("");
+      setEpDuration("");
+      setExpanded(null);
+      toast.success("Episode added");
+    } catch {
+      toast.error("Error adding episode");
+    }
+  };
+
+  // ✅ إدارة المستخدمين (تغيير رول / حظر)
+  const toggleBanUser = async (id: string, banned: boolean) => {
+    await updateDoc(doc(db, "users", id), { banned });
+    fetchUsers();
+    toast.success(banned ? "User banned" : "User unbanned");
+  };
+
+  // ✅ فلترة وبحث + Pagination
+  const filteredAnimes = animes.filter((anime) => {
+    const matchSearch = anime.title?.toLowerCase().includes(search.toLowerCase());
+    const matchCat = filterCat === "All" || anime.category === filterCat;
+    return matchSearch && matchCat;
+  });
+  const paginated = filteredAnimes.slice((page - 1) * perPage, page * perPage);
+
+  // 📊 بيانات للإحصائيات
+  const chartData = [
+    { name: "Animes", value: animes.length },
+    { name: "Users", value: users.length },
   ];
 
-  // دوال إدارة
-  const handleAddAnime = () => {
-    if (!title) return;
-    const newAnime: Anime = {
-      id: Date.now(),
-      title,
-      category,
-      featured,
-    };
-    setAnimes((prev) => [...prev, newAnime]);
-    setTitle("");
-    setImage("");
-    setDesc("");
-    setCategory("");
-    setTags("");
-    setRating("");
-    setFeatured(false);
-  };
-
-  const handleDelete = (id: number) => {
-    setAnimes((prev) => prev.filter((a) => a.id !== id));
-    setEpisodes((prev) => prev.filter((ep) => ep.animeId !== id));
-  };
-
-  const toggleFeatured = (id: number, val: boolean) => {
-    setAnimes((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, featured: val } : a))
+  // السماح فقط للإدمن
+  if (!user || user.email !== "akramgourri2007@gmail.com") {
+    return (
+      <Layout>
+        <div className="container mx-auto py-8 text-center">
+          <h2 className="text-xl font-bold">Access Denied</h2>
+        </div>
+      </Layout>
     );
-  };
-
-  const handleAddEpisode = (animeId: number) => {
-    if (!epTitle || !epNumber) return;
-    const newEp: Episode = {
-      id: Date.now(),
-      animeId,
-      title: epTitle,
-      number: Number(epNumber),
-      video: epVideo,
-      duration: epDuration,
-    };
-    setEpisodes((prev) => [...prev, newEp]);
-    setEpTitle("");
-    setEpNumber("");
-    setEpVideo("");
-    setEpDuration("");
-    setExpanded(null);
-  };
-
-  const toggleBanUser = (id: number, val: boolean) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, banned: val } : u))
-    );
-  };
-
-  // فلترة أنمي
-  const filteredAnimes = animes.filter(
-    (a) =>
-      a.title.toLowerCase().includes(search.toLowerCase()) &&
-      (filterCat === "All" || a.category === filterCat)
-  );
-  const paginated = filteredAnimes.slice(
-    (page - 1) * perPage,
-    page * perPage
-  );
+  }
 
   return (
     <Layout>
-      <div className="p-6 space-y-6">
-        {/* 📊 إحصائيات */}
-        <div className="grid gap-4 md:grid-cols-3">
-          {stats.map((s) => (
-            <Card key={s.label} className="p-6 text-center shadow-md">
-              <h3 className="text-sm text-gray-500">{s.label}</h3>
-              <p className="text-2xl font-bold">{s.value}</p>
-            </Card>
-          ))}
-        </div>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <h1 className="text-2xl font-bold">⚙️ Admin Dashboard</h1>
+
+        {/* 📊 الإحصائيات */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-2">Statistics</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#4f46e5" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
 
         {/* ➕ إضافة أنمي */}
         <Card className="p-6 space-y-4">
@@ -189,7 +234,7 @@ export default function Dashboard() {
               </Select>
             </div>
             <div>
-              <Label>Tags</Label>
+              <Label>Tags (comma separated)</Label>
               <Input value={tags} onChange={(e) => setTags(e.target.value)} />
             </div>
             <div>
