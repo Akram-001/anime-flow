@@ -399,18 +399,18 @@ export default function Dashboard() {
         )}
 
         {/* 👤 إدارة المستخدمين */}
-   <Card className="p-6">
+ <Card className="p-6 w-full max-w-full overflow-hidden">
   <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
 
   <div className="w-full overflow-x-auto">
     <table className="w-full min-w-[600px] table-auto border-collapse text-sm">
       <thead>
-      <tr className="border-b bg-muted">
-        <th className="p-2 text-left">Email</th>
-        <th className="p-2">Role</th>
-        <th className="p-2">Banned</th>
-        <th className="p-2">Actions</th>
-      </tr>
+        <tr className="border-b bg-muted">
+          <th className="p-2 text-left">Email</th>
+          <th className="p-2">Role</th>
+          <th className="p-2">Banned</th>
+          <th className="p-2">Actions</th>
+        </tr>
       </thead>
 
       <tbody>
@@ -440,6 +440,11 @@ export default function Dashboard() {
         )}
       </tbody>
     </table>
+  </div>
+
+  {/* النص أسفل الجدول */}
+  <div className="mt-4 text-sm text-muted-foreground">
+    Note: Please manage users responsibly.
   </div>
 </Card>
 </div>
