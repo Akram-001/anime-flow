@@ -13,64 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/component/ui/switch";
-          <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="p-2 text-left">Email</th>
-                  <th className="p-2">Role</th>
-                  <th className="p-2">Banned</th>
-                  <th className="p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b">
-                    <td className="p-2">{u.email}</td>
-                    <td className="p-2">{u.role || "user"}</td>
-                    <td className="p-2">{u.banned ? "Yes" : "No"}</td>
-                    <td className="p-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => toggleBanUser(u.id, !u.banned)}
-                      >
-                        {u.banned ? "Unban" : "Ban"}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-4 text-center">
-                      No users found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>s/ui/switch";
-import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner"; // للإشعارات
-import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
+         
 // 📌 الواجهة الرئيسية للوحة التحكم
 export default function Dashboard() {
   const { user } = useAuth();
