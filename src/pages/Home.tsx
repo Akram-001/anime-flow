@@ -3,9 +3,9 @@ import { HeroSection } from "@/components/HeroSection";
 import { AnimeCard } from "@/components/AnimeCard";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, TrendingUp, Sparkles, Clock } from "lucide-react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Layout } from "@/components/Layout"; // ✅ استدعاء Layout
+import { Layout } from "@/components/Layout";
 
 interface Anime {
   id: string;
@@ -17,6 +17,7 @@ interface Anime {
   year?: number;
   isTrending?: boolean;
   isNew?: boolean;
+  createdAt?: any;
 }
 
 interface SectionProps {
@@ -108,7 +109,10 @@ export const Home = () => {
 
     const fetchAnimes = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "animes"));
+        // ✅ نجيب الأنميات مرتبة من الأحدث للأقدم
+        const q = query(collection(db, "animes"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+
         const list: Anime[] = [];
         querySnapshot.forEach((doc) => {
           list.push({ id: doc.id, ...doc.data() } as Anime);
@@ -124,18 +128,21 @@ export const Home = () => {
     fetchAnimes();
   }, []);
 
+  // ✅ آخر أنمي انضاف
+  const latestAnime = animes.length > 0 ? animes[0] : null;
   const trendingAnime = animes.filter((anime) => anime.isTrending);
   const newAnime = animes.filter((anime) => anime.isNew);
   const allAnime = animes;
 
   return (
-    <Layout> {/* ✅ هنا أضفنا Layout */}
+    <Layout>
       <div
         className={`min-h-screen bg-gradient-hero transition-opacity duration-1000 ${
           isLoaded ? "opacity-100" : "opacity-0"
         }`}
       >
-        <HeroSection />
+        {/* ✅ آخر أنمي بالـ Hero */}
+        <HeroSection anime={latestAnime} />
 
         <div className="relative z-10 bg-background/95 backdrop-blur-sm">
           <AnimeSection
