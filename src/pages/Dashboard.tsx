@@ -1,5 +1,4 @@
 // src/pages/Dashboard.tsx
-import EpisodesManager from "@/components/EpisodesManager";
 import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -284,90 +283,120 @@ export default function Dashboard() {
           </Select>
         </div>
 
-{/* 📋 قائمة الأنميات */}
-<Card className="p-6">
-  <h2 className="text-lg font-semibold mb-4">Anime List</h2>
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b">
-          <th className="p-2 text-left">Title</th>
-          <th className="p-2">Category</th>
-          <th className="p-2">Featured</th>
-          <th className="p-2">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {paginated.map((anime) => (
-          <React.Fragment key={anime.id}>
-            <tr className="border-b">
-              <td className="p-2">{anime.title}</td>
-              <td className="p-2">{anime.category}</td>
-              <td className="p-2 text-center">
-                <Switch
-                  checked={anime.featured}
-                  onCheckedChange={(val) => toggleFeatured(anime.id, val)}
+        {/* 📋 قائمة الأنميات */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Anime List</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-2 text-left">Title</th>
+                  <th className="p-2">Category</th>
+                  <th className="p-2">Featured</th>
+                  <th className="p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((anime) => (
+                  <tr key={anime.id} className="border-b">
+                    <td className="p-2">{anime.title}</td>
+                    <td className="p-2">{anime.category}</td>
+                    <td className="p-2 text-center">
+                      <Switch
+                        checked={anime.featured}
+                        onCheckedChange={(val) => toggleFeatured(anime.id, val)}
+                      />
+                    </td>
+                    <td className="p-2 flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          setExpanded(expanded === anime.id ? null : anime.id)
+                        }
+                      >
+                        {expanded === anime.id ? "Close" : "Add Episode"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(anime.id)}
+                      >
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {paginated.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center">
+                      No animes found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {/* Pagination */}
+          <div className="flex justify-between mt-4">
+            <Button
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Prev
+            </Button>
+            <span>Page {page}</span>
+            <Button
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page * perPage >= filteredAnimes.length}
+            >
+              Next
+            </Button>
+          </div>
+        </Card>
+
+        {/* 📺 إضافة حلقة */}
+        {expanded && (
+          <Card className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Add Episode</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Label>Episode Title</Label>
+                <Input
+                  value={epTitle}
+                  onChange={(e) => setEpTitle(e.target.value)}
                 />
-              </td>
-              <td className="p-2 flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    setExpanded(expanded === anime.id ? null : anime.id)
-                  }
-                >
-                  {expanded === anime.id ? "Close" : "Add Episode"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleDelete(anime.id)}
-                >
-                  Delete
-                </Button>
-              </td>
-            </tr>
-
-            {/* ✅ إظهار إدارة الحلقات لما يفتح */}
-            {expanded === anime.id && (
-              <tr>
-                <td colSpan={4} className="p-4 bg-muted">
-                  <EpisodesManager animeId={anime.id} />
-                </td>
-              </tr>
-            )}
-          </React.Fragment>
-        ))}
-        {paginated.length === 0 && (
-          <tr>
-            <td colSpan={4} className="p-4 text-center">
-              No animes found
-            </td>
-          </tr>
+              </div>
+              <div>
+                <Label>Episode Number</Label>
+                <Input
+                  type="number"
+                  value={epNumber}
+                  onChange={(e) => setEpNumber(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Video URL</Label>
+                <Input
+                  value={epVideo}
+                  onChange={(e) => setEpVideo(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Duration</Label>
+                <Input
+                  placeholder="24m"
+                  value={epDuration}
+                  onChange={(e) => setEpDuration(e.target.value)}
+                />
+              </div>
+            </div>
+            <Button onClick={() => handleAddEpisode(expanded)}>
+              Save Episode
+            </Button>
+          </Card>
         )}
-      </tbody>
-    </table>
-  </div>
-
-  {/* Pagination */}
-  <div className="flex justify-between mt-4">
-    <Button
-      size="sm"
-      onClick={() => setPage((p) => Math.max(1, p - 1))}
-      disabled={page === 1}
-    >
-      Prev
-    </Button>
-    <span>Page {page}</span>
-    <Button
-      size="sm"
-      onClick={() => setPage((p) => p + 1)}
-      disabled={page * perPage >= filteredAnimes.length}
-    >
-      Next
-    </Button>
-  </div>
-</Card>
 
         {/* 👤 إدارة المستخدمين */}
         <Card className="p-6">
