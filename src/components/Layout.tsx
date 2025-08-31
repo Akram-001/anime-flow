@@ -11,8 +11,8 @@ export const Layout = ({ children }: LayoutProps) => {
       <Navigation />
       
       {/* Main Content */}
-      <main className="pt-16 md:pt-20">
-        {children}
+      <main className="pt-16 md:pt-20 pb-24">
+          {children}
       </main>
     </div>
   );
