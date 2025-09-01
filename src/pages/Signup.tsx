@@ -129,4 +129,4 @@ export default function Register() {
   );
 }
 
-export default function Signup() {
+export default function Signup() 
