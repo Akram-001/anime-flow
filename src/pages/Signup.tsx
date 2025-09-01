@@ -128,3 +128,5 @@ export default function Register() {
     </div>
   );
 }
+
+export default function Signup() {
