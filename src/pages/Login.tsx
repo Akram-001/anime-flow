@@ -1,16 +1,17 @@
-// src/pages/Login.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase"; 
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,59 +22,75 @@ export default function Login() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ Login successful");
-      navigate("/profile"); // يروح للبروفايل بعد تسجيل الدخول
+      navigate("/profile");
     } catch (err: any) {
-      console.error("❌ Login error:", err.message);
-      setError("خطأ في تسجيل الدخول: " + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 px-4">
-      <Card className="w-full max-w-md p-6 shadow-2xl bg-gray-900/80 backdrop-blur-xl border border-gray-700">
-        <CardContent>
-          <h1 className="text-2xl font-bold text-center mb-6 text-white">تسجيل الدخول</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
+    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
+      <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
+          Sign In
+        </h1>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          {/* Email */}
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               type="email"
-              placeholder="البريد الإلكتروني"
+              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="pl-10"
               required
-              className="bg-gray-800 text-white border-gray-600 focus:ring-2 focus:ring-purple-500"
             />
+          </div>
+
+          {/* Password */}
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              type="password"
-              placeholder="كلمة المرور"
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="pl-10 pr-10"
               required
-              className="bg-gray-800 text-white border-gray-600 focus:ring-2 focus:ring-purple-500"
             />
-
-            {error && (
-              <p className="text-red-400 text-sm text-center">{error}</p>
-            )}
-
             <Button
-              type="submit"
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl"
-              disabled={loading}
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full px-3"
+              onClick={() => setShowPassword(!showPassword)}
             >
-              {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </Button>
-          </form>
+          </div>
 
-          <p className="text-sm text-center mt-4 text-gray-400">
-            ماعندك حساب؟{" "}
-            <Link to="/signup" className="text-purple-400 hover:underline">
-              إنشاء حساب
-            </Link>
-          </p>
-        </CardContent>
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+
+          <Button
+            type="submit"
+            variant="hero"
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </Button>
+        </form>
+
+        <p className="text-center text-sm mt-4 text-gray-400">
+          Don’t have an account?{" "}
+          <Link to="/register" className="text-purple-400 hover:underline">
+            Sign Up
+          </Link>
+        </p>
       </Card>
     </div>
   );
