@@ -77,7 +77,9 @@ export const VIP = () => {
               </div>
 
               <div className="mt-8">
-                <Button className="w-full">Choose {plan.title}</Button>
+                <Button className="w-full" onClick={() => window.location.href="/payment"}>
+  Choose {plan.title}
+</Button>
               </div>
             </Card>
           ))}
