@@ -46,7 +46,7 @@ const App = () => (
 
               {/* ✅ المشاهدة */}
               <Route path="/anime/:animeId/watch/:episodeId" element={<Watch />} />
-
+               <Route path="/payment" element={<Payment />} />
               {/* ✅ الصفحات الجديدة */}
               <Route path="/account-settings" element={<AccountSettings />} />
               <Route path="/dashboard" element={<Dashboard />} />
