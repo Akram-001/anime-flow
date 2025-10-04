@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import VIP from "./pages/VIP";
 import AccountSettings from "./pages/AccountSettings"; 
+import Payment from "./pages/Payment";   // 👈 هذا الناقص
 
 // ✅ Providers
 import { AuthProvider } from "./context/AuthContext";
@@ -46,7 +47,10 @@ const App = () => (
 
               {/* ✅ المشاهدة */}
               <Route path="/anime/:animeId/watch/:episodeId" element={<Watch />} />
-               <Route path="/payment" element={<Payment />} />
+              
+              {/* ✅ الدفع */}
+              <Route path="/payment" element={<Payment />} />
+
               {/* ✅ الصفحات الجديدة */}
               <Route path="/account-settings" element={<AccountSettings />} />
               <Route path="/dashboard" element={<Dashboard />} />
