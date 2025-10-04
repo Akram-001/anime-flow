@@ -19,14 +19,14 @@ const defaultSettings: SettingsType = {
 export const useSettings = () => {
   const [settings, setSettings] = useState<SettingsType>(defaultSettings);
 
-  // تحميل من localStorage
+  // تحميل الإعدادات من localStorage عند أول تشغيل
   useEffect(() => {
     const saved = localStorage.getItem("settings");
     if (saved) {
-      const parsed = JSON.parse(saved);
+      const parsed: SettingsType = JSON.parse(saved);
       setSettings(parsed);
 
-      // تطبيق الثيم فوراً
+      // تطبيق وضع المظلم فوراً
       if (parsed.darkMode) {
         document.documentElement.classList.add("dark");
       } else {
@@ -35,7 +35,7 @@ export const useSettings = () => {
     }
   }, []);
 
-  // تحديث الإعدادات
+  // تحديث أي إعداد
   const updateSetting = (key: keyof SettingsType, value: any) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
