@@ -20,8 +20,9 @@ import Dashboard from "./pages/Dashboard";
 import VIP from "./pages/VIP";
 import AccountSettings from "./pages/AccountSettings"; 
 
-// ✅ استدعاء الـ AuthProvider
+// ✅ Providers
 import { AuthProvider } from "./context/AuthContext";
+import { SettingsProvider } from "./context/SettingsContext";
 
 const queryClient = new QueryClient();
 
@@ -31,29 +32,31 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} /> 
-            <Route path="/search" element={<Search />} />
-            <Route path="/favorites" element={<Favorites />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/anime/:id" element={<AnimeDetails />} />
+        <SettingsProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} /> 
+              <Route path="/search" element={<Search />} />
+              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/anime/:id" element={<AnimeDetails />} />
 
-            {/* ✅ مسار المشاهدة لازم animeId و episodeId */}
-            <Route path="/anime/:animeId/watch/:episodeId" element={<Watch />} />
+              {/* ✅ المشاهدة */}
+              <Route path="/anime/:animeId/watch/:episodeId" element={<Watch />} />
 
-            {/* ✅ الصفحات الجديدة */}
-            <Route path="/account-settings" element={<AccountSettings />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/vip" element={<VIP />} />
+              {/* ✅ الصفحات الجديدة */}
+              <Route path="/account-settings" element={<AccountSettings />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/vip" element={<VIP />} />
 
-            {/* catch all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+              {/* catch all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </SettingsProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
