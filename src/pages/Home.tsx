@@ -3,7 +3,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { AnimeCard } from "@/components/AnimeCard";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, TrendingUp, Sparkles, Clock } from "lucide-react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Layout } from "@/components/Layout";
 
@@ -18,6 +18,7 @@ interface Anime {
   isTrending?: boolean;
   isNew?: boolean;
   createdAt?: any;
+  deleted?: boolean;
 }
 
 interface SectionProps {
@@ -44,6 +45,14 @@ const AnimeSection = ({ title, icon, anime, className = "", loading }: SectionPr
       setScrollPosition(newPosition);
     }
   };
+
+  useEffect(() => {
+    const container = document.getElementById(`scroll-${title.replace(/\s+/g, "")}`);
+    if (!container) return;
+    const handleScroll = () => setScrollPosition(container.scrollLeft);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [title]);
 
   return (
     <section className={`py-12 ${className}`}>
@@ -83,15 +92,17 @@ const AnimeSection = ({ title, icon, anime, className = "", loading }: SectionPr
             className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            {anime.map((item, index) => (
-              <div
-                key={item.id}
-                className="flex-none w-80 animate-fade-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <AnimeCard anime={item} />
-              </div>
-            ))}
+            {anime
+              .filter((item) => item.image && item.title)
+              .map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex-none w-80 animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <AnimeCard anime={{ ...item, image: item.image || "/fallback.jpg" }} />
+                </div>
+              ))}
           </div>
         )}
       </div>
@@ -109,14 +120,25 @@ export const Home = () => {
 
     const fetchAnimes = async () => {
       try {
-        // ✅ نجيب الأنميات مرتبة من الأحدث للأقدم
-        const q = query(collection(db, "animes"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "animes"), orderBy("createdAt", "desc"), limit(100));
         const querySnapshot = await getDocs(q);
 
         const list: Anime[] = [];
         querySnapshot.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() } as Anime);
+          const data = doc.data();
+
+          // ✅ تأكد أن الوثيقة صالحة
+          if (
+            data &&
+            data.title &&
+            data.image &&
+            !data.deleted &&
+            data.title !== "Ethereal Realms"
+          ) {
+            list.push({ id: doc.id, ...data } as Anime);
+          }
         });
+
         setAnimes(list);
       } catch (error) {
         console.error("❌ خطأ في جلب الأنميات:", error);
@@ -128,11 +150,13 @@ export const Home = () => {
     fetchAnimes();
   }, []);
 
-  // ✅ آخر أنمي انضاف
-  const latestAnime = animes.length > 0 ? animes[0] : null;
-  const trendingAnime = animes.filter((anime) => anime.isTrending);
-  const newAnime = animes.filter((anime) => anime.isNew);
-  const allAnime = animes;
+  // ✅ تأكد أن الهيرو يأخذ أنمي صالح فعلاً
+  const validAnimes = animes.filter((a) => a.image && a.title);
+  const latestAnime = validAnimes.length > 0 ? validAnimes[0] : null;
+
+  const trendingAnime = validAnimes.filter((anime) => anime.isTrending);
+  const newAnime = validAnimes.filter((anime) => anime.isNew);
+  const allAnime = validAnimes;
 
   return (
     <Layout>
@@ -141,8 +165,8 @@ export const Home = () => {
           isLoaded ? "opacity-100" : "opacity-0"
         }`}
       >
-        {/* ✅ آخر أنمي بالـ Hero */}
-        <HeroSection anime={latestAnime} />
+        {/* ✅ آخر أنمي بالـ Hero (فقط لو صالح) */}
+        {latestAnime && <HeroSection anime={latestAnime} />}
 
         <div className="relative z-10 bg-background/95 backdrop-blur-sm">
           <AnimeSection
