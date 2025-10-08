@@ -1,5 +1,5 @@
-// src/pages/Dashboard.tsx
-import { useEffect, useMemo, useState } from "react";
+/* src/pages/Dashboard.tsx */
+import React, { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,7 +24,6 @@ import {
   updateDoc,
   serverTimestamp,
   query,
-  where,
   orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -37,19 +36,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-/**
- * Dashboard.tsx
- * - نظام رتب users collection: { name?, email, role, banned, createdAt }
- * - ownerEmail: لديك كـ owner افتراضي
- * - يعرض جدول المستخدمين مع: عرض ملف (Modal)، تغيير رتبة، حظر/رفع حظر، حذف.
- * - صلاحيات: owner/admin يمكنهم إدارة المستخدمين. moderator يمكنه فقط حظر.
- * - ملاحظات أمان: حذف يزيل doc من collection users فقط؛ تحديث email في Auth غير مغطى.
- */
-
 const OWNER_EMAIL = "akramgourri2007@gmail.com";
 
 type UserRecord = {
   id: string;
+  uid?: string;
   name?: string;
   email?: string;
   role?: string;
@@ -58,7 +49,7 @@ type UserRecord = {
   [k: string]: any;
 };
 
-export default function Dashboard() {
+export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
   const [animes, setAnimes] = useState<any[]>([]);
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -91,14 +82,11 @@ export default function Dashboard() {
   const [modalUser, setModalUser] = useState<UserRecord | null>(null);
   const [modalSaving, setModalSaving] = useState(false);
 
-  /* -------------------- helpers: permissions -------------------- */
   const currentUserRole = useMemo(() => {
-    // try find role from fetched users
     if (!user) return null;
     const matched = users.find((u) => {
       if (!u) return false;
-      // try match by uid if stored, else by email
-      if ((u as any).uid && (user as any).uid) return (u as any).uid === (user as any).uid;
+      if (u.uid && (user as any).uid) return u.uid === (user as any).uid;
       return u.email === user.email;
     });
     return matched?.role || (user.email === OWNER_EMAIL ? "owner" : null);
@@ -114,7 +102,6 @@ export default function Dashboard() {
     return ["moderator", "admin", "owner"].includes(currentUserRole);
   }, [currentUserRole]);
 
-  /* -------------------- fetchers -------------------- */
   const fetchAnimes = async () => {
     try {
       const snap = await getDocs(collection(db, "animes"));
@@ -126,7 +113,6 @@ export default function Dashboard() {
 
   const fetchUsers = async () => {
     try {
-      // order by createdAt desc if exists
       const usersRef = collection(db, "users");
       const q = query(usersRef, orderBy("createdAt", "desc"));
       const snap = await getDocs(q);
@@ -142,7 +128,6 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* -------------------- anime operations -------------------- */
   const handleAddAnime = async () => {
     if (!title || !desc || !image) {
       toast.error("Please fill all required anime fields");
@@ -162,7 +147,13 @@ export default function Dashboard() {
       };
       await addDoc(collection(db, "animes"), payload);
       toast.success("Anime added");
-      setTitle(""); setDesc(""); setImage(""); setTags(""); setCategory("Action"); setFeatured(false); setRating("PG-13");
+      setTitle("");
+      setDesc("");
+      setImage("");
+      setTags("");
+      setCategory("Action");
+      setFeatured(false);
+      setRating("PG-13");
       fetchAnimes();
     } catch (err) {
       console.error("addAnime", err);
@@ -208,7 +199,11 @@ export default function Dashboard() {
         duration: epDuration,
         createdAt: serverTimestamp(),
       });
-      setEpTitle(""); setEpNumber(""); setEpVideo(""); setEpDuration(""); setExpanded(null);
+      setEpTitle("");
+      setEpNumber("");
+      setEpVideo("");
+      setEpDuration("");
+      setExpanded(null);
       toast.success("Episode added");
     } catch (e) {
       console.error(e);
@@ -216,10 +211,8 @@ export default function Dashboard() {
     }
   };
 
-  /* -------------------- users operations -------------------- */
   const updateUserRole = async (userId: string, newRole: string) => {
     if (!canManageUsers) return toast.error("No permission to change role");
-    // prevent downgrading owner or editing owner by others
     const target = users.find((u) => u.id === userId);
     if (!target) return;
     if (target.email === OWNER_EMAIL && user?.email !== OWNER_EMAIL) {
@@ -283,14 +276,12 @@ export default function Dashboard() {
     if (!modalUser) return;
     setModalSaving(true);
     try {
-      // update only editable fields stored in Firestore user doc
       const payload: Partial<UserRecord> = {
         name: modalUser.name,
         role: modalUser.role,
         banned: modalUser.banned,
       };
       await updateDoc(doc(db, "users", modalUser.id), payload);
-      // update local state
       setUsers((prev) => prev.map((u) => (u.id === modalUser.id ? { ...u, ...payload } : u)));
       toast.success("User updated");
       closeUserModal();
@@ -302,7 +293,6 @@ export default function Dashboard() {
     }
   };
 
-  /* -------------------- UI derived data -------------------- */
   const filteredAnimes = animes.filter((anime) => {
     const matchSearch = anime.title?.toLowerCase().includes(search.toLowerCase());
     const matchCat = filterCat === "All" || anime.category === filterCat;
@@ -315,16 +305,12 @@ export default function Dashboard() {
     { name: "Users", value: users.length },
   ];
 
-  /* -------------------- access control for route -------------------- */
-  // allow if current user is ownerEmail or if their role is admin/owner in users collection
   const hasDashboardAccess = useMemo(() => {
     if (!user) return false;
     if (user.email === OWNER_EMAIL) return true;
-    // if role known
     if (currentUserRole) return ["admin", "owner"].includes(currentUserRole);
     return false;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, users]);
+  }, [user, users, currentUserRole]);
 
   if (!user || !hasDashboardAccess) {
     return (
@@ -337,7 +323,6 @@ export default function Dashboard() {
     );
   }
 
-  /* -------------------- render -------------------- */
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 space-y-8">
