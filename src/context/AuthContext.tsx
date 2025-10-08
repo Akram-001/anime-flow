@@ -1,34 +1,46 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { auth } from "@/lib/firebase"; // 👈 استدعاء auth من ملف firebase.ts
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase"; // 👈 تأكد أن firebase.ts يصدر { auth, db }
 
-// ✅ تعريف شكل البيانات داخل الـ context
 interface AuthContextType {
   user: User | null;
   logout: () => Promise<void>;
 }
 
-// ✅ إنشـاء الـ context
 const AuthContext = createContext<AuthContextType>({
   user: null,
   logout: async () => {},
 });
 
-// Hook جاهز للاستخدام
 export const useAuth = () => useContext(AuthContext);
 
-// ✅ AuthProvider يلف كل التطبيق
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+
+      // ✅ تسجيل المستخدم تلقائيًا داخل Firestore إن لم يكن موجودًا
+      if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            email: currentUser.email,
+            role: "user", // 👈 الدور الافتراضي
+            banned: false,
+            createdAt: serverTimestamp(),
+          });
+        }
+      }
     });
+
     return () => unsubscribe();
   }, []);
 
-  // دالة تسجيل الخروج
   const logout = async () => {
     await signOut(auth);
   };
