@@ -435,48 +435,90 @@ const viewUserProfile = (user) => {
 };
 
 
+{/* 👤 إدارة المستخدمين */}
+<Card className="p-6">
+  <h2 className="text-lg font-semibold mb-4">إدارة المستخدمين</h2>
+  <div className="overflow-x-auto">
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b bg-gray-100">
+          <th className="p-2 text-left">الاسم</th>
+          <th className="p-2 text-left">البريد</th>
+          <th className="p-2">الرتبة</th>
+          <th className="p-2">الحالة</th>
+          <th className="p-2">الخيارات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map((u) => (
+          <tr key={u.id} className="border-b hover:bg-gray-50">
+            <td className="p-2">{u.name || "غير معروف"}</td>
+            <td className="p-2">{u.email}</td>
 
-        {/* 👤 إدارة المستخدمين */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="p-2 text-left">Email</th>
-                  <th className="p-2">Role</th>
-                  <th className="p-2">Banned</th>
-                  <th className="p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b">
-                    <td className="p-2">{u.email}</td>
-                    <td className="p-2">{u.role || "user"}</td>
-                    <td className="p-2">{u.banned ? "Yes" : "No"}</td>
-                    <td className="p-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => toggleBanUser(u.id, !u.banned)}
-                      >
-                        {u.banned ? "Unban" : "Ban"}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-4 text-center">
-                      No users found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+            {/* 🔰 الرتبة */}
+            <td className="p-2">
+              <select
+                className="bg-gray-100 px-2 py-1 rounded text-sm"
+                value={u.role || "user"}
+                onChange={(e) => updateUserRole(u.id, e.target.value)}
+              >
+                <option value="user">User</option>
+                <option value="vip">VIP</option>
+                <option value="moderator">Moderator</option>
+                <option value="admin">Admin</option>
+                <option value="owner">Owner</option>
+              </select>
+            </td>
+
+            {/* 🔒 الحالة */}
+            <td className="p-2">
+              {u.banned ? (
+                <span className="text-red-600 font-medium">محظور</span>
+              ) : (
+                <span className="text-green-600 font-medium">نشط</span>
+              )}
+            </td>
+
+            {/* ⚙️ الخيارات */}
+            <td className="p-2 space-x-2">
+              <Button
+                size="sm"
+                variant={u.banned ? "default" : "destructive"}
+                onClick={() => toggleBanUser(u.id, !u.banned)}
+              >
+                {u.banned ? "رفع الحظر" : "حظر"}
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => viewUserProfile(u)}
+              >
+                عرض الملف
+              </Button>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => deleteUser(u.id)}
+              >
+                حذف
+              </Button>
+            </td>
+          </tr>
+        ))}
+
+        {users.length === 0 && (
+          <tr>
+            <td colSpan={5} className="p-4 text-center text-gray-500">
+              لا يوجد مستخدمين
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</Card>
       </div>
     </Layout>
   );
