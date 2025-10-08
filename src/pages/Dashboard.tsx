@@ -5,13 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -36,11 +30,13 @@ import {
 
 export default function Dashboard() {
   const { user } = useAuth();
+
+  // البيانات
   const [animes, setAnimes] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 🧩 حقول الأنمي
+  // حقول الأنمي
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [image, setImage] = useState("");
@@ -49,20 +45,20 @@ export default function Dashboard() {
   const [tags, setTags] = useState("");
   const [rating, setRating] = useState("PG-13");
 
-  // 🧩 الحلقات
+  // الحلقات
   const [epTitle, setEpTitle] = useState("");
   const [epNumber, setEpNumber] = useState("");
   const [epVideo, setEpVideo] = useState("");
   const [epDuration, setEpDuration] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  // 🧩 بحث وفلترة
+  // بحث
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("All");
   const [page, setPage] = useState(1);
   const perPage = 5;
 
-  // ✅ جلب البيانات
+  // 🔹 جلب البيانات
   const fetchAnimes = async () => {
     const snapshot = await getDocs(collection(db, "animes"));
     setAnimes(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -106,18 +102,47 @@ export default function Dashboard() {
     console.log("User Profile:", user);
   };
 
-  // ✅ صلاحية الأدمن فقط
+  // ✅ إدارة الأنميات
+  const addAnime = async () => {
+    if (!title || !image) return toast.error("الرجاء إدخال جميع الحقول المطلوبة");
+    setLoading(true);
+    const newAnime = {
+      title,
+      desc,
+      image,
+      category,
+      featured,
+      tags: tags.split(",").map((t) => t.trim()),
+      rating,
+      createdAt: serverTimestamp(),
+    };
+    const docRef = await addDoc(collection(db, "animes"), newAnime);
+    setAnimes([{ id: docRef.id, ...newAnime }, ...animes]);
+    setTitle("");
+    setDesc("");
+    setImage("");
+    toast.success("تمت إضافة الأنمي بنجاح");
+    setLoading(false);
+  };
+
+  const deleteAnime = async (id: string) => {
+    await deleteDoc(doc(db, "animes", id));
+    setAnimes((prev) => prev.filter((a) => a.id !== id));
+    toast.success("تم حذف الأنمي");
+  };
+
+  // 🔒 صلاحية الأدمن فقط
   if (!user || user.email !== "akramgourri2007@gmail.com") {
     return (
       <Layout>
         <div className="container mx-auto py-8 text-center">
-          <h2 className="text-xl font-bold">🚫 Access Denied</h2>
+          <h2 className="text-xl font-bold">🚫 لا تملك صلاحية الوصول</h2>
         </div>
       </Layout>
     );
   }
 
-  // ✅ عرض الصفحة
+  // ✅ واجهة الداشبورد
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 space-y-8">
@@ -164,9 +189,7 @@ export default function Dashboard() {
                       <select
                         className="bg-gray-100 px-2 py-1 rounded text-sm"
                         value={u.role || "user"}
-                        onChange={(e) =>
-                          updateUserRole(u.id, e.target.value)
-                        }
+                        onChange={(e) => updateUserRole(u.id, e.target.value)}
                       >
                         <option value="user">User</option>
                         <option value="vip">VIP</option>
@@ -190,18 +213,10 @@ export default function Dashboard() {
                       >
                         {u.banned ? "رفع الحظر" : "حظر"}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => viewUserProfile(u)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => viewUserProfile(u)}>
                         عرض الملف
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteUser(u.id)}
-                      >
+                      <Button size="sm" variant="destructive" onClick={() => deleteUser(u.id)}>
                         حذف
                       </Button>
                     </td>
@@ -209,10 +224,7 @@ export default function Dashboard() {
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="p-4 text-center text-gray-500"
-                    >
+                    <td colSpan={5} className="p-4 text-center text-gray-500">
                       لا يوجد مستخدمين
                     </td>
                   </tr>
@@ -220,6 +232,44 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
+        </Card>
+
+        {/* 📺 إدارة الأنميات */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">إضافة أنمي جديد</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label>العنوان</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div>
+              <Label>الصورة</Label>
+              <Input value={image} onChange={(e) => setImage(e.target.value)} />
+            </div>
+            <div>
+              <Label>الوصف</Label>
+              <Input value={desc} onChange={(e) => setDesc(e.target.value)} />
+            </div>
+            <div>
+              <Label>التصنيف</Label>
+              <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+            </div>
+            <div>
+              <Label>التصنيف العمري</Label>
+              <Input value={rating} onChange={(e) => setRating(e.target.value)} />
+            </div>
+            <div>
+              <Label>الكلمات المفتاحية</Label>
+              <Input value={tags} onChange={(e) => setTags(e.target.value)} />
+            </div>
+            <div>
+              <Label>مميز؟</Label>
+              <Switch checked={featured} onCheckedChange={setFeatured} />
+            </div>
+          </div>
+          <Button className="mt-4" onClick={addAnime} disabled={loading}>
+            {loading ? "جاري الإضافة..." : "إضافة الأنمي"}
+          </Button>
         </Card>
       </div>
     </Layout>
