@@ -398,6 +398,44 @@ export default function Dashboard() {
           </Card>
         )}
 
+
+import { collection, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+useEffect(() => {
+  const fetchUsers = async () => {
+    const snapshot = await getDocs(collection(db, "users"));
+    setUsers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+  };
+  fetchUsers();
+}, []);
+
+// 🔄 تحديث الرتبة
+const updateUserRole = async (userId, newRole) => {
+  await updateDoc(doc(db, "users", userId), { role: newRole });
+  setUsers(users.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+};
+
+// 🚫 حظر / رفع الحظر
+const toggleBanUser = async (userId, bannedState) => {
+  await updateDoc(doc(db, "users", userId), { banned: bannedState });
+  setUsers(users.map((u) => (u.id === userId ? { ...u, banned: bannedState } : u)));
+};
+
+// 🗑️ حذف المستخدم
+const deleteUser = async (userId) => {
+  await deleteDoc(doc(db, "users", userId));
+  setUsers(users.filter((u) => u.id !== userId));
+};
+
+// 👁️ عرض الملف الشخصي (مؤقتًا كـ console)
+const viewUserProfile = (user) => {
+  console.log("User Profile:", user);
+  // لاحقًا تقدر تفتح Modal أو صفحة جديدة تعرض التفاصيل
+};
+
+
+
         {/* 👤 إدارة المستخدمين */}
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
