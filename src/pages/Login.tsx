@@ -1,3 +1,4 @@
+// src/pages/Login.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,18 +15,28 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/profile");
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const user = userCredential.user;
+
+      toast.success(`Welcome back, ${user.email}!`);
+      navigate("/dashboard"); // أو "/profile" لو تفضلها
     } catch (err: any) {
-      setError(err.message);
+      console.error("Login error:", err);
+      const msg =
+        err.code === "auth/user-not-found"
+          ? "No account found with this email."
+          : err.code === "auth/wrong-password"
+          ? "Incorrect password."
+          : err.code === "auth/invalid-email"
+          ? "Invalid email format."
+          : "Login failed. Try again later.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -69,11 +81,13 @@ export default function Login() {
               className="absolute right-0 top-0 h-full px-3"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
             </Button>
           </div>
-
-          {error && <p className="text-red-400 text-sm">{error}</p>}
 
           <Button
             type="submit"
@@ -87,7 +101,7 @@ export default function Login() {
 
         <p className="text-center text-sm mt-4 text-gray-400">
           Don’t have an account?{" "}
-          <Link to="/Signup" className="text-purple-400 hover:underline">
+          <Link to="/signup" className="text-purple-400 hover:underline">
             Sign Up
           </Link>
         </p>
