@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 
-export default function Register() {
+export default function Signup() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,7 +29,22 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      // إنشاء حساب في Firebase
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // تحديث اسم المستخدم
+      await updateProfile(user, { displayName: name });
+
+      // إنشاء سجل في Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        name,
+        email,
+        role: "user",
+        banned: false,
+        createdAt: serverTimestamp(),
+      });
+
       navigate("/profile");
     } catch (err: any) {
       setError(err.message);
@@ -128,5 +144,3 @@ export default function Register() {
     </div>
   );
 }
-
-export default function Signup() 
