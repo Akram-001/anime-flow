@@ -3,64 +3,86 @@ import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
-// 👤 تعريف نوع بيانات الـ context
 interface AuthContextType {
   user: User | null;
+  userData: any | null;
   logout: () => Promise<void>;
   loading: boolean;
 }
 
-// 🔧 إنشاء الـ context بقيم افتراضية
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  userData: null,
   logout: async () => {},
   loading: true,
 });
 
-// ✅ Hook جاهز للاستخدام في أي مكان
 export const useAuth = () => useContext(AuthContext);
 
-// ✅ المزوّد الرئيسي (يلف كل التطبيق)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
+      if (!currentUser) {
+        setUser(null);
+        setUserData(null);
+        setLoading(false);
+        return;
+      }
 
-      if (currentUser) {
-        try {
-          const userRef = doc(db, "users", currentUser.uid);
-          const snap = await getDoc(userRef);
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        const snap = await getDoc(userRef);
 
-          // ✅ إذا المستخدم جديد، أضفه إلى Firestore
-          if (!snap.exists()) {
-            await setDoc(userRef, {
-              uid: currentUser.uid,
-              email: currentUser.email || "",
-              role: "user",
-              banned: false,
-              createdAt: serverTimestamp(),
-            });
+        if (!snap.exists()) {
+          // مستخدم جديد
+          const newUserData = {
+            uid: currentUser.uid,
+            email: currentUser.email || "",
+            role: "user",
+            banned: false,
+            createdAt: serverTimestamp(),
+          };
+          await setDoc(userRef, newUserData);
+          setUserData(newUserData);
+          setUser(currentUser);
+        } else {
+          const data = snap.data();
+
+          // 🔥 تحقق مباشر من الحظر
+          if (data?.banned === true) {
+            await signOut(auth);
+            setUser(null);
+            setUserData(null);
+            alert("🚫 حسابك محظور ولا يمكنك تسجيل الدخول.");
+            return;
           }
-        } catch (error) {
-          console.error("Error syncing user to Firestore:", error);
+
+          // المستخدم طبيعي
+          setUser(currentUser);
+          setUserData(data);
         }
+      } catch (err) {
+        console.error("Error checking user:", err);
+      } finally {
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // 🧩 تسجيل الخروج
   const logout = async () => {
     await signOut(auth);
+    setUser(null);
+    setUserData(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, logout, loading }}>
+    <AuthContext.Provider value={{ user, userData, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
