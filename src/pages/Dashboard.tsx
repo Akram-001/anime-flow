@@ -677,17 +677,7 @@ export default function Dashboard(): JSX.Element {
                 <Label>Email (readonly)</Label>
                 <Input value={modalUser.email || ""} disabled />
               </div>
-              <div>
-                <Label>Role</Label>
-                <select value={modalUser.role || "user"} onChange={(e) => setModalUser({ ...modalUser, role: e.target.value })} className="bg-gray-100 px-2 py-1 rounded" disabled={!canManageUsers}>
-                  <option value="user">User</option>
-                  <option value="vip">VIP</option>
-                  <option value="moderator">Moderator</option>
-                  <option value="admin">Admin</option>
-                  <option value="founder">Founder</option>
-                  <option value="owner">Owner</option>
-                </select>
-              </div>
+             
               <div>
                 <Label>Banned</Label>
                 <div className="flex items-center gap-2">
