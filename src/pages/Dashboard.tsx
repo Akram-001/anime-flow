@@ -425,7 +425,35 @@ const saveModalUser = async () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 space-y-8">
-        <h1 className="text-2xl font-bold">⚙️ Admin Dashboard</h1>
+       {/* Admin Dashboard Header */}
+<div className="text-center mb-10 mt-6">
+  <div className="flex justify-center mb-4">
+    <div className="bg-gradient-to-tr from-yellow-400 to-yellow-600 p-3 rounded-full shadow-lg">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-10 h-10 text-white"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 4l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5 2-4z"
+        />
+      </svg>
+    </div>
+  </div>
+
+  <h1 className="text-4xl font-bold gradient-text">
+    Admin Dashboard
+  </h1>
+
+  <p className="text-muted-foreground mt-2 text-sm">
+    Manage users, control ranks, and oversee everything from here.
+  </p>
+</div>
 
         {/* Statistics */}
         <Card className="p-6">
