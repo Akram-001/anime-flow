@@ -60,7 +60,7 @@ export default function Login() {
       );
 
       toast.success("Signed in with Google!");
-      navigate("/dashboard");
+      navigate("/Profile");
     } catch (err: any) {
       console.error("Google login error:", err);
       toast.error(err.message || "Google sign-in failed");
