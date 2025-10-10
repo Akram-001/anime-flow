@@ -1,31 +1,30 @@
-// ✅ AuthProvider.tsx (نسخة كاملة ومعدّلة)
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
+// 🧩 تعريف نوع البيانات داخل Auth Context
 interface AuthContextType {
   user: User | null;
   logout: () => Promise<void>;
   loading: boolean;
 }
 
+// 🧱 إنشاء الـ Context
 const AuthContext = createContext<AuthContextType>({
   user: null,
   logout: async () => {},
   loading: true,
 });
 
+// ⚡ Hook جاهز للوصول للمستخدم في أي مكان
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+// ⚙️ المزوّد الرئيسي (يلف كامل المشروع)
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -37,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const userRef = doc(db, "users", currentUser.uid);
           const snap = await getDoc(userRef);
 
-          // 🧩 إذا المستخدم جديد، أضفه إلى Firestore
+          // ✅ لو المستخدم جديد
           if (!snap.exists()) {
             await setDoc(userRef, {
               uid: currentUser.uid,
@@ -49,34 +48,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           } else {
             const data = snap.data();
 
-            // 🚫 تحقق من الحظر
+            // 🚫 التحقق من الحظر
             if (data?.banned === true) {
-              toast.error("🚫 تم حظر حسابك من استخدام الموقع.", {
-                description: "تواصل مع الإدارة إذا كنت تعتقد أن هذا خطأ.",
+              toast.error("🚫 حسابك محظور", {
+                description: "تواصل مع الإدارة إذا كنت تعتقد أن هناك خطأ.",
                 duration: 5000,
               });
 
               await signOut(auth);
               setUser(null);
-              navigate("/login");
+              window.location.href = "/login"; // 🔁 يرجعه لتسجيل الدخول
               return;
             }
           }
         } catch (error) {
-          console.error("❌ Error syncing user to Firestore:", error);
-          toast.error("حدث خطأ أثناء التحقق من الحساب.");
+          console.error("❌ Firestore Sync Error:", error);
+          toast.error("حدث خطأ أثناء التحقق من حسابك.");
         }
       }
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, []);
 
+  // 🔓 تسجيل الخروج
   const logout = async () => {
     await signOut(auth);
     setUser(null);
-    toast.success("تم تسجيل الخروج بنجاح.");
-    navigate("/login");
+    toast.success("تم تسجيل الخروج بنجاح");
+    window.location.href = "/login";
   };
 
   return (
