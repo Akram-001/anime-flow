@@ -575,67 +575,82 @@ export default function Dashboard(): JSX.Element {
         )}
 
         {/* Users management */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="p-2 text-left">Name</th>
-                  <th className="p-2 text-left">Email</th>
-                  <th className="p-2">Role</th>
-                  <th className="p-2">Status</th>
-                  <th className="p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b hover:bg-white">
-                    <td className="p-2">{u.name || "—"}</td>
-                    <td className="p-2">{u.email}</td>
-                    <td className="p-2 text-center">
-                      <select
-                        className="bg-gray-100 px-2 py-1 rounded text-sm"
-                        value={u.role || "user"}
-                        onChange={(e) => updateUserRole(u.id, e.target.value)}
-                        disabled={!canManageUsers}
-                      >
-                        <option value="user">User</option>
-                        <option value="vip">VIP</option>
-                        <option value="moderator">Moderator</option>
-                        <option value="admin">Admin</option>
-                        <option value="founder">Founder</option>
-                        <option value="owner">Owner</option>
-                      </select>
-                    </td>
-                    <td className="p-2 text-center">
-                      {u.banned ? <span className="text-red-600 font-medium">Banned</span> : <span className="text-green-600 font-medium">Active</span>}
-                    </td>
-                    <td className="p-2 space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => openUserModal(u)}>View</Button>
+<Card className="p-6">
+  <h2 className="text-lg font-semibold mb-4">Manage Users</h2>
+  <div className="overflow-x-auto">
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b bg-gray-50">
+          <th className="p-2 text-left">Name</th>
+          <th className="p-2 text-left">Email</th>
+          <th className="p-2 text-center">Role</th>
+          <th className="p-2 text-center">Status</th>
+          <th className="p-2 text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map((u) => (
+          <tr key={u.id} className="border-b hover:bg-white">
+            <td className="p-2">{u.name || "—"}</td>
+            <td className="p-2">{u.email}</td>
+            <td className="p-2 text-center">
+              <select
+                className="bg-gray-100 px-2 py-1 rounded text-sm"
+                value={u.role || "user"}
+                onChange={(e) => updateUserRole(u.id, e.target.value)}
+                disabled={!canManageUsers}
+              >
+                <option value="user">User</option>
+                <option value="vip">VIP</option>
+                <option value="moderator">Moderator</option>
+                <option value="admin">Admin</option>
+                <option value="founder">Founder</option>
+                <option value="owner">Owner</option>
+              </select>
+            </td>
+            <td className="p-2 text-center">
+              {u.banned ? (
+                <span className="text-red-600 font-medium">Banned</span>
+              ) : (
+                <span className="text-green-600 font-medium">Active</span>
+              )}
+            </td>
+            <td className="p-2 flex flex-wrap gap-2 justify-start">
+              <Button size="sm" variant="outline" onClick={() => openUserModal(u)}>
+                View
+              </Button>
 
-                      <Button
-                        size="sm"
-                        variant={u.banned ? "default" : "destructive"}
-                        onClick={() => toggleBanUser(u.id, !u.banned)}
-                        disabled={!canModerate}
-                      >
-                        {u.banned ? "Unban" : "Ban"}
-                      </Button>
+              <Button
+                size="sm"
+                variant={u.banned ? "default" : "destructive"}
+                onClick={() => toggleBanUser(u.id, !u.banned)}
+                disabled={!canModerate}
+              >
+                {u.banned ? "Unban" : "Ban"}
+              </Button>
 
-                      <Button size="sm" variant="destructive" onClick={() => deleteUser(u.id)} disabled={!canManageUsers}>Delete</Button>
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="p-4 text-center text-gray-500">No users found</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => deleteUser(u.id)}
+                disabled={!canManageUsers}
+              >
+                Delete
+              </Button>
+            </td>
+          </tr>
+        ))}
+        {users.length === 0 && (
+          <tr>
+            <td colSpan={5} className="p-4 text-center text-gray-500">
+              No users found
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</Card>
       </div>
 
       {/* User Modal */}
