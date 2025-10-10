@@ -1,7 +1,6 @@
-// src/pages/Signup.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,6 @@ export default function Signup() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    toast.dismiss();
-
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       setLoading(false);
@@ -31,11 +28,9 @@ export default function Signup() {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       await updateProfile(user, { displayName: name });
-
       await setDoc(doc(db, "users", user.uid), {
         name,
         email,
@@ -43,41 +38,36 @@ export default function Signup() {
         banned: false,
         createdAt: serverTimestamp(),
       });
-
-      toast.success("Account created successfully!");
+      toast.success("Account created!");
       navigate("/dashboard");
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
+  // Google Sign-In
   const handleGoogleSignup = async () => {
     setLoading(true);
-    toast.dismiss();
     const provider = new GoogleAuthProvider();
-
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      const userDoc = await doc(db, "users", user.uid).get();
-      if (!(await (await doc(db, "users", user.uid).get()).exists())) {
-        await setDoc(doc(db, "users", user.uid), {
-          name: user.displayName,
-          email: user.email,
-          role: "user",
-          banned: false,
-          createdAt: serverTimestamp(),
-        });
-      }
+      // create Firestore doc if not exists
+      await setDoc(doc(db, "users", user.uid), {
+        name: user.displayName,
+        email: user.email,
+        role: "user",
+        banned: false,
+        createdAt: serverTimestamp(),
+      }, { merge: true });
 
-      toast.success(`Welcome, ${user.displayName}!`);
+      toast.success("Signed up with Google!");
       navigate("/dashboard");
     } catch (err: any) {
-      console.error(err);
-      toast.error("Google sign-in failed");
+      toast.error(err.message || "Google sign-up failed");
     } finally {
       setLoading(false);
     }
@@ -85,8 +75,10 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
-      <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Create Account</h1>
+      <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md animate-fade-in">
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
+          Create Account
+        </h1>
 
         <form onSubmit={handleRegister} className="space-y-5">
           <div className="relative">
@@ -146,18 +138,23 @@ export default function Signup() {
             />
           </div>
 
-          <Button type="submit" variant="hero" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            variant="hero"
+            className="w-full"
+            disabled={loading}
+          >
             {loading ? "Creating Account..." : "Sign Up"}
           </Button>
         </form>
 
         <Button
           variant="outline"
-          className="w-full py-2 flex items-center justify-center gap-2 mt-2"
+          className="w-full mt-3 flex items-center justify-center gap-2 py-2 border-gray-300 hover:bg-gray-100 transition-all duration-200 transform hover:-translate-y-1"
           onClick={handleGoogleSignup}
           disabled={loading}
         >
-          <img src="/icons/google.svg" alt="Google" className="w-5 h-5" />
+          <span className="text-red-500 font-bold text-lg">G</span>
           Sign Up with Google
         </Button>
 
