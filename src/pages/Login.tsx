@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { setDoc, doc } from "firebase/firestore";
+import { setDoc, doc } from "firebase/firestore"; // ✅ لازم تضيف هذا
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -47,9 +47,9 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // create Firestore doc if not exists
+      // ✅ الطريقة الحديثة لإنشاء أو تحديث ملف المستخدم
       await setDoc(
-        db.collection("users").doc(user.uid),
+        doc(db, "users", user.uid),
         {
           name: user.displayName,
           email: user.email,
@@ -73,12 +73,9 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md animate-fade-in">
-        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
-          Sign In
-        </h1>
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Sign In</h1>
 
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* Email */}
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -91,7 +88,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Password */}
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -113,12 +109,7 @@ export default function Login() {
             </Button>
           </div>
 
-          <Button
-            type="submit"
-            variant="hero"
-            className="w-full"
-            disabled={loading}
-          >
+          <Button type="submit" variant="hero" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
