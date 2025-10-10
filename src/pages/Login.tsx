@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { setDoc, doc } from "firebase/firestore"; // ✅ لازم تضيف هذا
+import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -19,52 +19,74 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      toast.success(`Welcome back, ${user.email}!`);
-      navigate("/Profile");
-    } catch (err: any) {
-      console.error("Login error:", err);
-      const msg =
-        err.code === "auth/user-not-found"
-          ? "No account found with this email."
-          : err.code === "auth/wrong-password"
-          ? "Incorrect password."
-          : err.code === "auth/invalid-email"
-          ? "Invalid email format."
-          : "Login failed. Try again later.";
-      toast.error(msg);
+
+      // 🔎 تحقق من حالة الحظر
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      if (!userDoc.exists()) {
+        toast.error("المستخدم غير موجود في قاعدة البيانات.");
+        setLoading(false);
+        return;
+      }
+
+      const data = userDoc.data();
+
+      if (data.banned) {
+        // 🚫 المستخدم محظور
+        await auth.signOut();
+        toast("🚫 حسابك محظور", {
+          description: "تم تعطيل وصولك إلى الموقع، تواصل مع الإدارة إذا كنت ترى أن هذا خطأ.",
+          duration: 5000,
+        });
+        setLoading(false);
+        return; // 👈 ما ينتقل أبداً
+      }
+
+      // ✅ مستخدم عادي، يدخل الموقع
+      toast("👋 مرحباً بعودتك!", {
+        description: "تم تسجيل الدخول بنجاح.",
+        duration: 4000,
+      });
+      navigate("/Dashboard");
+
+    } catch (error: any) {
+      toast.error("فشل تسجيل الدخول: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔹 تسجيل الدخول بـ Google
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
+      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // ✅ الطريقة الحديثة لإنشاء أو تحديث ملف المستخدم
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          name: user.displayName,
-          email: user.email,
-          role: "user",
-          banned: false,
-          createdAt: new Date(),
-        },
-        { merge: true }
-      );
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const data = userDoc.data();
 
-      toast.success("Signed in with Google!");
-      navigate("/Profile");
+      if (data && data.banned) {
+        await auth.signOut();
+        toast("🚫 حسابك محظور", {
+          description: "تم تعطيل وصولك إلى الموقع.",
+          duration: 5000,
+        });
+        return;
+      }
+
+      toast("👋 مرحباً بعودتك!", {
+        description: "تم تسجيل الدخول بنجاح.",
+        duration: 4000,
+      });
+      navigate("/Dashboard");
     } catch (err: any) {
-      console.error("Google login error:", err);
-      toast.error(err.message || "Google sign-in failed");
+      toast.error(err.message || "فشل تسجيل الدخول بـ Google");
     } finally {
       setLoading(false);
     }
@@ -73,14 +95,16 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md animate-fade-in">
-        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Sign In</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
+          تسجيل الدخول
+        </h1>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               type="email"
-              placeholder="Email address"
+              placeholder="البريد الإلكتروني"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10"
@@ -92,7 +116,7 @@ export default function Login() {
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              placeholder="كلمة المرور"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10 pr-10"
@@ -109,8 +133,13 @@ export default function Login() {
             </Button>
           </div>
 
-          <Button type="submit" variant="hero" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+          <Button
+            type="submit"
+            variant="hero"
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
           </Button>
         </form>
 
@@ -121,13 +150,13 @@ export default function Login() {
           disabled={loading}
         >
           <span className="text-red-500 font-bold text-lg">G</span>
-          Sign In with Google
+          تسجيل الدخول بـ Google
         </Button>
 
         <p className="text-center text-sm mt-4 text-gray-400">
-          Don’t have an account?{" "}
+          ليس لديك حساب؟{" "}
           <Link to="/signup" className="text-purple-400 hover:underline">
-            Sign Up
+            إنشاء حساب
           </Link>
         </p>
       </Card>
