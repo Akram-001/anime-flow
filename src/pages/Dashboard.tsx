@@ -615,7 +615,7 @@ export default function Dashboard(): JSX.Element {
                 <span className="text-green-600 font-medium">Active</span>
               )}
             </td>
-            <td className="p-2 flex flex-wrap gap-2 justify-start">
+            <td className="p-2 flex flex-row gap-2 justify-center">
               <Button size="sm" variant="outline" onClick={() => openUserModal(u)}>
                 View
               </Button>
