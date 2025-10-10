@@ -5,9 +5,41 @@ import { Card } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { EditProfileModal } from "@/components/EditProfileModal";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+type UserData = {
+  role?: string;
+  name?: string;
+};
 
 export const Profile = () => {
   const { user, logout } = useAuth();
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!user) return;
+      try {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as UserData;
+          setRole(data.role || "user");
+        } else {
+          setRole("user"); // fallback
+        }
+      } catch (err) {
+        console.error("fetchUserRole", err);
+        setRole("user");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUserRole();
+  }, [user]);
 
   if (!user) {
     return (
@@ -21,7 +53,8 @@ export const Profile = () => {
     );
   }
 
-  const isAdmin = user.email === "akramgourri2007@gmail.com"; // ✨ إيميل الأدمن
+  // أي رتبة لها صلاحية وصول للداشبورد
+  const hasDashboardAccess = ["owner", "founder", "admin"].includes(role || "");
 
   return (
     <Layout>
@@ -34,25 +67,23 @@ export const Profile = () => {
                 <div className="w-24 h-24 rounded-full bg-gradient-primary flex items-center justify-center">
                   <User className="w-12 h-12 text-white" />
                 </div>
-                {/* ✅ زر التعديل بمودال */}
+                {/* زر التعديل */}
                 <EditProfileModal />
               </div>
-              
+
               <div className="text-center md:text-left flex-1">
                 <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
                   <h1 className="text-2xl font-bold">{user.displayName || "User"}</h1>
-                  {isAdmin && (
-                    <Shield className="w-5 h-5 text-primary" />
-                  )}
+                  {hasDashboardAccess && <Shield className="w-5 h-5 text-primary" />}
                 </div>
                 <p className="text-muted-foreground mb-2">{user.email}</p>
                 <div className="flex items-center gap-2 justify-center md:justify-start">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    isAdmin
+                    hasDashboardAccess
                       ? "bg-primary/20 text-primary"
                       : "bg-secondary/20 text-secondary"
                   }`}>
-                    {isAdmin ? "Admin" : "User"}
+                    {role ? role.charAt(0).toUpperCase() + role.slice(1) : "User"}
                   </span>
                   <span className="text-sm text-muted-foreground">
                     UID: {user.uid}
@@ -76,7 +107,7 @@ export const Profile = () => {
 
           {/* Actions */}
           <div className="space-y-4">
-            {isAdmin && (
+            {hasDashboardAccess && (
               <Button asChild variant="hero" className="w-full justify-start" size="lg">
                 <Link to="/dashboard">
                   <Shield className="w-5 h-5 mr-3" />
@@ -84,22 +115,22 @@ export const Profile = () => {
                 </Link>
               </Button>
             )}
-            
+
             <Button asChild variant="outline" className="w-full justify-start" size="lg">
               <Link to="/account-settings">
                 <Settings className="w-5 h-5 mr-3" />
                 Account Settings
               </Link>
             </Button>
-            
+
             <Button asChild variant="outline" className="w-full justify-start" size="lg">
               <Link to="/vip">
                 <Crown className="w-5 h-5 mr-3" />
                 Upgrade to VIP
               </Link>
             </Button>
-            
-            {/* تسجيل خروج */}
+
+            {/* Sign Out */}
             <Button 
               variant="destructive" 
               className="w-full justify-start" 
