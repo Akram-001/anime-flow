@@ -671,38 +671,42 @@ const saveModalUser = async () => {
 </Card>
       </div>
 
-      {/* User Modal */}
-      {showUserModal && modalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg w-[90%] max-w-2xl p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">User Profile</h3>
-              <div>
-                <Button size="sm" variant="ghost" onClick={closeUserModal}>Close</Button>
-              </div>
-            </div>
+{/* User Modal */}
+{showUserModal && modalUser && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="bg-white rounded-lg w-[90%] max-w-2xl p-6 shadow-lg">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">User Profile</h3>
+        <Button size="sm" variant="ghost" onClick={closeUserModal}>Close</Button>
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Name</Label>
-                <Input value={modalUser.name || ""} onChange={(e) => setModalUser({ ...modalUser, name: e.target.value })} />
-              </div>
-              <div>
-                <Label>Email (readonly)</Label>
-                <Input value={modalUser.email || ""} disabled />
-              </div>
-             
-             
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button size="sm" variant="ghost" onClick={closeUserModal}>Cancel</Button>
-              <Button size="sm" onClick={saveModalUser} disabled={modalSaving}>{modalSaving ? "Saving..." : "Save"}</Button>
-            </div>
-          </div>
+      {/* Body */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Name</Label>
+          <Input
+            value={modalUser.name || ""}
+            onChange={(e) => setModalUser({ ...modalUser, name: e.target.value })}
+          />
         </div>
-      )}
+
+        <div>
+          <Label>Email (readonly)</Label>
+          <Input value={modalUser.email || ""} disabled />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-6 flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={closeUserModal}>Cancel</Button>
+        <Button size="sm" onClick={saveModalUser} disabled={modalSaving}>
+          {modalSaving ? "Saving..." : "Save"}
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
     </Layout>
   );
 }
