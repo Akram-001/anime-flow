@@ -39,7 +39,7 @@ export default function Signup() {
         createdAt: serverTimestamp(),
       });
       toast.success("Account created!");
-      navigate("/dashboard");
+      navigate("/Profile");
     } catch (err: any) {
       toast.error(err.message || "Registration failed");
     } finally {
