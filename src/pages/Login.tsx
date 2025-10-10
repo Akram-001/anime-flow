@@ -22,7 +22,7 @@ export default function Login() {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
       toast.success(`Welcome back, ${user.email}!`);
-      navigate("/dashboard");
+      navigate("/Profile");
     } catch (err: any) {
       console.error("Login error:", err);
       const msg =
