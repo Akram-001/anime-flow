@@ -611,20 +611,20 @@ export default function Dashboard(): JSX.Element {
                     <td className="p-2 text-center">
                       {u.banned ? <span className="text-red-600 font-medium">Banned</span> : <span className="text-green-600 font-medium">Active</span>}
                     </td>
-                    <td className="p-2 flex flex-wrap gap-2 justify-start">
-  <Button size="sm" variant="outline" onClick={() => openUserModal(u)}>View</Button>
+                    <td className="p-2 space-x-2">
+                      <Button size="sm" variant="outline" onClick={() => openUserModal(u)}>View</Button>
 
-  <Button
-    size="sm"
-    variant={u.banned ? "default" : "destructive"}
-    onClick={() => toggleBanUser(u.id, !u.banned)}
-    disabled={!canModerate}
-  >
-    {u.banned ? "Unban" : "Ban"}
-  </Button>
+                      <Button
+                        size="sm"
+                        variant={u.banned ? "default" : "destructive"}
+                        onClick={() => toggleBanUser(u.id, !u.banned)}
+                        disabled={!canModerate}
+                      >
+                        {u.banned ? "Unban" : "Ban"}
+                      </Button>
 
-  <Button size="sm" variant="destructive" onClick={() => deleteUser(u.id)} disabled={!canManageUsers}>Delete</Button>
-</td>
+                      <Button size="sm" variant="destructive" onClick={() => deleteUser(u.id)} disabled={!canManageUsers}>Delete</Button>
+                    </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
