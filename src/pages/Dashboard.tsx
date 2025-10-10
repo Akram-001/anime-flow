@@ -594,20 +594,24 @@ export default function Dashboard(): JSX.Element {
             <td className="p-2">{u.name || "—"}</td>
             <td className="p-2">{u.email}</td>
             <td className="p-2 text-center">
-              <select
-                className="bg-gray-100 px-2 py-1 rounded text-sm"
-                value={u.role || "user"}
-                onChange={(e) => updateUserRole(u.id, e.target.value)}
-                disabled={!canManageUsers}
-              >
-                <option value="user">User</option>
-                <option value="vip">VIP</option>
-                <option value="moderator">Moderator</option>
-                <option value="admin">Admin</option>
-                <option value="founder">Founder</option>
-                <option value="owner">Owner</option>
-              </select>
-            </td>
+  <Select
+    value={u.role || "user"}
+    onValueChange={(val) => updateUserRole(u.id, val)}
+    disabled={!canManageUsers}
+  >
+    <SelectTrigger className="w-28">
+      <SelectValue placeholder="Select Role" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="user">User</SelectItem>
+      <SelectItem value="vip">VIP</SelectItem>
+      <SelectItem value="moderator">Moderator</SelectItem>
+      <SelectItem value="admin">Admin</SelectItem>
+      <SelectItem value="founder">Founder</SelectItem>
+      <SelectItem value="owner">Owner</SelectItem>
+    </SelectContent>
+  </Select>
+</td>
             <td className="p-2 text-center">
               {u.banned ? (
                 <span className="text-red-600 font-medium">Banned</span>
