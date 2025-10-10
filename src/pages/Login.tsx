@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -16,6 +20,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // --- Handle login with email/password
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -24,43 +29,41 @@ export default function Login() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 🔎 تحقق من حالة الحظر
+      // Check if user is banned
       const userDoc = await getDoc(doc(db, "users", user.uid));
 
       if (!userDoc.exists()) {
-        toast.error("المستخدم غير موجود في قاعدة البيانات.");
+        toast.error("User data not found.");
         setLoading(false);
         return;
       }
 
       const data = userDoc.data();
-
       if (data.banned) {
-        // 🚫 المستخدم محظور
         await auth.signOut();
-        toast("🚫 حسابك محظور", {
-          description: "تم تعطيل وصولك إلى الموقع، تواصل مع الإدارة إذا كنت ترى أن هذا خطأ.",
-          duration: 5000,
+        toast("🚫 Your account is banned", {
+          description: "Contact the admin if you think this is a mistake.",
+          duration: 4000,
         });
         setLoading(false);
-        return; // 👈 ما ينتقل أبداً
+        return; // Stop here — don’t navigate
       }
 
-      // ✅ مستخدم عادي، يدخل الموقع
-      toast("👋 مرحباً بعودتك!", {
-        description: "تم تسجيل الدخول بنجاح.",
-        duration: 4000,
+      // Login success
+      toast("👋 Welcome back!", {
+        description: "You are now logged in.",
+        duration: 3000,
       });
       navigate("/Dashboard");
 
-    } catch (error: any) {
-      toast.error("فشل تسجيل الدخول: " + error.message);
+    } catch (err: any) {
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 تسجيل الدخول بـ Google
+  // --- Handle Google login
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
@@ -73,20 +76,21 @@ export default function Login() {
 
       if (data && data.banned) {
         await auth.signOut();
-        toast("🚫 حسابك محظور", {
-          description: "تم تعطيل وصولك إلى الموقع.",
-          duration: 5000,
+        toast("🚫 Your account is banned", {
+          description: "Contact support for help.",
+          duration: 4000,
         });
         return;
       }
 
-      toast("👋 مرحباً بعودتك!", {
-        description: "تم تسجيل الدخول بنجاح.",
-        duration: 4000,
+      toast("👋 Welcome back!", {
+        description: "You are now logged in.",
+        duration: 3000,
       });
       navigate("/Dashboard");
+
     } catch (err: any) {
-      toast.error(err.message || "فشل تسجيل الدخول بـ Google");
+      toast.error(err.message || "Google login failed");
     } finally {
       setLoading(false);
     }
@@ -96,7 +100,7 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md animate-fade-in">
         <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
-          تسجيل الدخول
+          Sign In
         </h1>
 
         <form onSubmit={handleLogin} className="space-y-5">
@@ -104,7 +108,7 @@ export default function Login() {
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               type="email"
-              placeholder="البريد الإلكتروني"
+              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10"
@@ -116,7 +120,7 @@ export default function Login() {
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               type={showPassword ? "text" : "password"}
-              placeholder="كلمة المرور"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10 pr-10"
@@ -139,7 +143,7 @@ export default function Login() {
             className="w-full"
             disabled={loading}
           >
-            {loading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
 
@@ -150,13 +154,13 @@ export default function Login() {
           disabled={loading}
         >
           <span className="text-red-500 font-bold text-lg">G</span>
-          تسجيل الدخول بـ Google
+          Sign In with Google
         </Button>
 
         <p className="text-center text-sm mt-4 text-gray-400">
-          ليس لديك حساب؟{" "}
+          Don’t have an account?{" "}
           <Link to="/signup" className="text-purple-400 hover:underline">
-            إنشاء حساب
+            Sign Up
           </Link>
         </p>
       </Card>
