@@ -136,7 +136,7 @@ export default function Dashboard(): JSX.Element {
     [currentUserRole]
   ); // ban/unban
   const hasDashboardAccess = useMemo(
-    () => ["owner", "admin", "founder"].includes(currentUserRole || ""),
+    () => ["owner", "admin", "founder", "moderator"].includes(currentUserRole || ""),
     [currentUserRole]
   ); // who sees dashboard at all
 
