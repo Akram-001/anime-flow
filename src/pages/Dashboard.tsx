@@ -252,134 +252,148 @@ export default function Dashboard(): JSX.Element {
     }
   };
 
-  /* -------------------- users operations -------------------- */
+// -------------------- users operations (updated with role hierarchy protection) --------------------
 
-  // change role — ONLY owner can
-  const updateUserRole = async (userId: string, newRole: string) => {
-    const target = users.find((u) => u.id === userId);
-    if (!target) return toast.error("User not found");
+// ترتيب الرتب (أقوى لأضعف)
+const roleHierarchy = ["owner", "founder", "admin", "moderator", "vip", "user"];
 
-    // Protect owner
-    if (target.email === OWNER_EMAIL && user?.email !== OWNER_EMAIL) {
-      return toast.error("Cannot change Owner role");
-    }
+// change role — ONLY owner can, cannot change رتبة أعلى أو مساوية له
+const updateUserRole = async (userId: string, newRole: string) => {
+  const target = users.find((u) => u.id === userId);
+  if (!target) return toast.error("User not found");
 
-    if (currentUserRole !== "owner") {
-      return toast.error("Only Owner can change roles");
-    }
+  // Protect owner
+  if (target.email === OWNER_EMAIL && user?.email !== OWNER_EMAIL) {
+    return toast.error("Cannot change Owner role");
+  }
 
-    try {
-      await updateDoc(doc(db, "users", userId), { role: newRole });
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
-      toast.success("Role updated");
-    } catch (err) {
-      console.error("updateUserRole", err);
-      toast.error("Error updating role");
-    }
-  };
+  if (currentUserRole !== "owner") {
+    return toast.error("Only Owner can change roles");
+  }
 
-  // ban/unban — founder/admin/moderator/owner allowed (but founder can't ban owner)
-  const toggleBanUser = async (userId: string, bannedState: boolean) => {
-    const target = users.find((u) => u.id === userId);
-    if (!target) return toast.error("User not found");
+  // لا يمكن تغيير رتبة شخص أعلى أو مساوي
+  const currentUserIndex = roleHierarchy.indexOf(currentUserRole || "");
+  const targetIndex = roleHierarchy.indexOf(target.role || "user");
+  const newRoleIndex = roleHierarchy.indexOf(newRole);
 
-    if (!canModerate) return toast.error("No permission to ban/unban");
+  if (targetIndex <= currentUserIndex || newRoleIndex <= currentUserIndex) {
+    return toast.error("Cannot assign or modify a role equal or higher than yours");
+  }
 
-    // protect owner
-    if (target.email === OWNER_EMAIL) return toast.error("Cannot ban Owner");
+  try {
+    await updateDoc(doc(db, "users", userId), { role: newRole });
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+    toast.success("Role updated");
+  } catch (err) {
+    console.error("updateUserRole", err);
+    toast.error("Error updating role");
+  }
+};
 
-    // founder cannot ban owner (already covered), but founder allowed otherwise
-    if (currentUserRole === "founder" && target.role === "owner") {
-      return toast.error("Founder cannot touch Owner");
-    }
+// ban/unban — cannot ban anyone أعلى منك
+const toggleBanUser = async (userId: string, bannedState: boolean) => {
+  const target = users.find((u) => u.id === userId);
+  if (!target) return toast.error("User not found");
 
-    try {
-      await updateDoc(doc(db, "users", userId), { banned: bannedState });
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, banned: bannedState } : u)));
-      toast.success(bannedState ? "User banned" : "User unbanned");
-    } catch (err) {
-      console.error("toggleBanUser", err);
-      toast.error("Error updating ban state");
-    }
-  };
+  if (!canModerate) return toast.error("No permission to ban/unban");
 
-  // delete user doc — only owner
-  const deleteUser = async (userId: string) => {
-    const target = users.find((u) => u.id === userId);
-    if (!target) return toast.error("User not found");
+  // Protect owner
+  if (target.email === OWNER_EMAIL) return toast.error("Cannot ban Owner");
 
-    if (target.email === OWNER_EMAIL) return toast.error("Cannot delete Owner");
+  // لا يمكن حظر أي شخص أعلى أو مساوي لرتبتك
+  const currentUserIndex = roleHierarchy.indexOf(currentUserRole || "");
+  const targetIndex = roleHierarchy.indexOf(target.role || "user");
+  if (targetIndex <= currentUserIndex) {
+    return toast.error("Cannot ban/unban users with equal or higher role than yours");
+  }
 
-    if (currentUserRole !== "owner") return toast.error("Only Owner can delete users");
+  try {
+    await updateDoc(doc(db, "users", userId), { banned: bannedState });
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, banned: bannedState } : u)));
+    toast.success(bannedState ? "User banned" : "User unbanned");
+  } catch (err) {
+    console.error("toggleBanUser", err);
+    toast.error("Error updating ban state");
+  }
+};
 
-    if (!confirm(`Delete user ${target.email}? This will remove their Firestore user doc.`)) return;
+// delete user doc — only owner can, cannot delete رتبة أعلى أو مساوية
+const deleteUser = async (userId: string) => {
+  const target = users.find((u) => u.id === userId);
+  if (!target) return toast.error("User not found");
 
-    try {
-      await deleteDoc(doc(db, "users", userId));
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-      toast.success("User deleted");
-    } catch (err) {
-      console.error("deleteUser", err);
-      toast.error("Error deleting user");
-    }
-  };
+  if (target.email === OWNER_EMAIL) return toast.error("Cannot delete Owner");
 
-  // open modal to view/edit user (editing role only allowed for owner in modal save)
-  const openUserModal = (u: UserRecord) => {
-    setModalUser({ ...u });
-    setShowUserModal(true);
-  };
+  if (currentUserRole !== "owner") return toast.error("Only Owner can delete users");
 
-  const closeUserModal = () => {
-    setModalUser(null);
-    setShowUserModal(false);
-  };
+  // لا يمكن حذف رتبة أعلى أو مساوية
+  const currentUserIndex = roleHierarchy.indexOf(currentUserRole || "");
+  const targetIndex = roleHierarchy.indexOf(target.role || "user");
+  if (targetIndex <= currentUserIndex) {
+    return toast.error("Cannot delete users with equal or higher role than yours");
+  }
 
-  const saveModalUser = async () => {
-    if (!modalUser) return;
-    // Only owner can change role in saveModalUser; others allowed to edit name only (if permitted)
-    if (modalUser.email === OWNER_EMAIL && user?.email !== OWNER_EMAIL) {
-      return toast.error("Cannot modify Owner");
-    }
+  if (!confirm(`Delete user ${target.email}? This will remove their Firestore user doc.`)) return;
 
-    // if trying to change role and current user is not owner — forbid
-    const original = users.find((u) => u.id === modalUser.id);
-    if (original && original.role !== modalUser.role && currentUserRole !== "owner") {
-      return toast.error("Only Owner can change roles");
-    }
+  try {
+    await deleteDoc(doc(db, "users", userId));
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    toast.success("User deleted");
+  } catch (err) {
+    console.error("deleteUser", err);
+    toast.error("Error deleting user");
+  }
+};
 
-    // founder cannot set role of owner — but owner is protected above
-    if (currentUserRole === "founder" && original && original.role === "owner") {
-      return toast.error("Founder cannot modify Owner");
-    }
+// open modal to view user
+const openUserModal = (u: UserRecord) => {
+  setModalUser({ ...u });
+  setShowUserModal(true);
+};
 
-    // If current role can't edit users, block
-    if (!canEditUsers && user?.email !== OWNER_EMAIL) {
-      // user may edit own name only
-      if ((user as any).uid !== modalUser.id) return toast.error("No permission to edit this user");
-    }
+const closeUserModal = () => {
+  setModalUser(null);
+  setShowUserModal(false);
+};
 
-    setModalSaving(true);
-    try {
-      // only update allowed fields
-      const payload: Partial<UserRecord> = {
-        name: modalUser.name,
-        banned: modalUser.banned,
-      };
-      // role only if owner
-      if (currentUserRole === "owner") payload.role = modalUser.role;
+// save modal user changes (name + banned only, role if owner)
+const saveModalUser = async () => {
+  if (!modalUser) return;
 
-      await updateDoc(doc(db, "users", modalUser.id), payload);
-      setUsers((prev) => prev.map((u) => (u.id === modalUser.id ? { ...u, ...payload } : u)));
-      toast.success("User saved");
-      closeUserModal();
-    } catch (err) {
-      console.error("saveModalUser", err);
-      toast.error("Error saving user");
-    } finally {
-      setModalSaving(false);
-    }
-  };
+  const original = users.find((u) => u.id === modalUser.id);
+  if (!original) return toast.error("User not found");
+
+  // Only owner can change role
+  if (original.role !== modalUser.role && currentUserRole !== "owner") {
+    return toast.error("Only Owner can change roles");
+  }
+
+  // cannot edit higher أو مساوي rank
+  const currentUserIndex = roleHierarchy.indexOf(currentUserRole || "");
+  const targetIndex = roleHierarchy.indexOf(original.role || "user");
+  if (targetIndex <= currentUserIndex) {
+    return toast.error("Cannot modify users with equal or higher role than yours");
+  }
+
+  setModalSaving(true);
+  try {
+    const payload: Partial<UserRecord> = {
+      name: modalUser.name,
+      banned: modalUser.banned,
+    };
+    if (currentUserRole === "owner") payload.role = modalUser.role;
+
+    await updateDoc(doc(db, "users", modalUser.id), payload);
+    setUsers((prev) => prev.map((u) => (u.id === modalUser.id ? { ...u, ...payload } : u)));
+    toast.success("User saved");
+    closeUserModal();
+  } catch (err) {
+    console.error("saveModalUser", err);
+    toast.error("Error saving user");
+  } finally {
+    setModalSaving(false);
+  }
+};
 
   /* -------------------- UI derived -------------------- */
   const filteredAnimes = animes.filter((anime) => {
