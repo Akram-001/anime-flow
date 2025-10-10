@@ -65,7 +65,7 @@ export default function Signup() {
       }, { merge: true });
 
       toast.success("Signed up with Google!");
-      navigate("/dashboard");
+      navigate("/Profile");
     } catch (err: any) {
       toast.error(err.message || "Google sign-up failed");
     } finally {
