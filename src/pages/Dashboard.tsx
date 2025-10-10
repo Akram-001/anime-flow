@@ -692,12 +692,7 @@ const saveModalUser = async () => {
                 <Input value={modalUser.email || ""} disabled />
               </div>
              
-              <div>
-                <Label>Banned</Label>
-                <div className="flex items-center gap-2">
-                  <Switch checked={!!modalUser.banned} onCheckedChange={(val) => setModalUser({ ...modalUser, banned: val })} />
-                  <span className="text-sm">{modalUser.banned ? "Banned" : "Active"}</span>
-                </div>
+             
               </div>
             </div>
 
