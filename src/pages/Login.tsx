@@ -1,12 +1,11 @@
-// src/pages/Login.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Google } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -23,11 +22,9 @@ export default function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
-
-      toast.success(`Welcome back, ${user.email}!`);
-      navigate("/dashboard"); // أو "/profile" لو تفضلها
+      toast.success(`Welcome back, ${user.displayName || user.email}!`);
+      navigate("/dashboard");
     } catch (err: any) {
-      console.error("Login error:", err);
       const msg =
         err.code === "auth/user-not-found"
           ? "No account found with this email."
@@ -42,10 +39,41 @@ export default function Login() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // حفظ المستخدم في Firestore إذا جديد
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(
+        userRef,
+        {
+          name: user.displayName,
+          email: user.email,
+          role: "user",
+          banned: false,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      toast.success(`Welcome, ${user.displayName || user.email}!`);
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error("Google login error:", err);
+      toast.error("Google login failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
+        <h1 className="text-3xl font-bold mb-6 text-center gradient-text">
           Sign In
         </h1>
 
@@ -81,25 +109,40 @@ export default function Login() {
               className="absolute right-0 top-0 h-full px-3"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </Button>
           </div>
 
+          {/* Login Button */}
           <Button
             type="submit"
             variant="hero"
-            className="w-full"
+            className="w-full py-3 text-lg"
             disabled={loading}
           >
             {loading ? "Signing in..." : "Sign In"}
           </Button>
+
+          {/* OR Divider */}
+          <div className="flex items-center justify-center gap-3 my-2 text-gray-400">
+            <span className="border-t border-gray-300 flex-1"></span>
+            <span>OR</span>
+            <span className="border-t border-gray-300 flex-1"></span>
+          </div>
+
+          {/* Google Sign In */}
+          <Button
+            variant="outline"
+            className="w-full py-2 flex items-center justify-center gap-2"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+          >
+            <Google className="w-5 h-5" />
+            Sign In with Google
+          </Button>
         </form>
 
-        <p className="text-center text-sm mt-4 text-gray-400">
+        <p className="text-center text-sm mt-6 text-gray-400">
           Don’t have an account?{" "}
           <Link to="/signup" className="text-purple-400 hover:underline">
             Sign Up
