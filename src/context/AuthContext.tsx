@@ -28,34 +28,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
 
       if (currentUser) {
-        const userRef = doc(db, "users", currentUser.uid);
-        const snap = await getDoc(userRef);
+        try {
+          const userRef = doc(db, "users", currentUser.uid);
+          const snap = await getDoc(userRef);
 
-        // إذا المستخدم جديد
-        if (!snap.exists()) {
-          await setDoc(userRef, {
-            uid: currentUser.uid,
-            email: currentUser.email || "",
-            role: "user",
-            banned: false,
-            createdAt: serverTimestamp(),
-          });
-        }
+          if (!snap.exists()) {
+            await setDoc(userRef, {
+              uid: currentUser.uid,
+              email: currentUser.email || "",
+              role: "user",
+              banned: false,
+              createdAt: serverTimestamp(),
+            });
+          }
 
-        const data = snap.data();
+          const data = snap.data();
 
-        // 🚫 المستخدم محظور
-        if (data && data.banned) {
-          await signOut(auth);
+          // 🚫 المستخدم محظور
+          if (data && data.banned) {
+            await signOut(auth);
+            setUser(null);
+
+            toast({
+              title: "🚫 حسابك محظور",
+              description: "تم تعطيل وصولك إلى الموقع. تواصل مع الإدارة إذا تعتقد أن هناك خطأ.",
+              variant: "default", // نفس شكل التوستات البيضاء السابقة
+              duration: 5000,
+            });
+          } else {
+            setUser(currentUser);
+          }
+        } catch (err) {
+          console.error("Auth check error:", err);
           setUser(null);
-          toast({
-            title: "🚫 الحساب محظور",
-            description: "تم حظر حسابك من الوصول للموقع. تواصل مع الإدارة إذا تعتقد أن هذا خطأ.",
-            variant: "destructive",
-            duration: 5000,
-          });
-        } else {
-          setUser(currentUser);
         }
       } else {
         setUser(null);
@@ -71,9 +76,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut(auth);
   };
 
+  // 🔒 لو المستخدم محظور أو مو مسجل، ما يشوف الموقع أبداً
+  if (loading) return null;
+  if (!user) return <></>; // يبقى بصفحة تسجيل الدخول فقط
+
   return (
     <AuthContext.Provider value={{ user, logout, loading }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
