@@ -1,11 +1,12 @@
+// src/pages/Login.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Mail, Lock, Eye, EyeOff, Google } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -18,13 +19,16 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    toast.dismiss();
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
-      toast.success(`Welcome back, ${user.displayName || user.email}!`);
+
+      toast.success(`Welcome back, ${user.email}!`);
       navigate("/dashboard");
     } catch (err: any) {
+      console.error("Login error:", err);
       const msg =
         err.code === "auth/user-not-found"
           ? "No account found with this email."
@@ -41,30 +45,17 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    toast.dismiss();
     const provider = new GoogleAuthProvider();
+
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-
-      // حفظ المستخدم في Firestore إذا جديد
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(
-        userRef,
-        {
-          name: user.displayName,
-          email: user.email,
-          role: "user",
-          banned: false,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
       toast.success(`Welcome, ${user.displayName || user.email}!`);
       navigate("/dashboard");
     } catch (err: any) {
-      console.error("Google login error:", err);
-      toast.error("Google login failed. Try again.");
+      console.error(err);
+      toast.error("Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -73,12 +64,9 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-6 text-center gradient-text">
-          Sign In
-        </h1>
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Sign In</h1>
 
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* Email */}
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -91,7 +79,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Password */}
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -113,36 +100,22 @@ export default function Login() {
             </Button>
           </div>
 
-          {/* Login Button */}
-          <Button
-            type="submit"
-            variant="hero"
-            className="w-full py-3 text-lg"
-            disabled={loading}
-          >
+          <Button type="submit" variant="hero" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
-          </Button>
-
-          {/* OR Divider */}
-          <div className="flex items-center justify-center gap-3 my-2 text-gray-400">
-            <span className="border-t border-gray-300 flex-1"></span>
-            <span>OR</span>
-            <span className="border-t border-gray-300 flex-1"></span>
-          </div>
-
-          {/* Google Sign In */}
-          <Button
-            variant="outline"
-            className="w-full py-2 flex items-center justify-center gap-2"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-          >
-            <Google className="w-5 h-5" />
-            Sign In with Google
           </Button>
         </form>
 
-        <p className="text-center text-sm mt-6 text-gray-400">
+        <Button
+          variant="outline"
+          className="w-full py-2 flex items-center justify-center gap-2 mt-2"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+        >
+          <img src="/icons/google.svg" alt="Google" className="w-5 h-5" />
+          Sign In with Google
+        </Button>
+
+        <p className="text-center text-sm mt-4 text-gray-400">
           Don’t have an account?{" "}
           <Link to="/signup" className="text-purple-400 hover:underline">
             Sign Up
