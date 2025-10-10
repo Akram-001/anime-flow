@@ -80,6 +80,10 @@ type UserRecord = {
 export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // --- data
   const [animes, setAnimes] = useState<Anime[]>([]);
   const [users, setUsers] = useState<UserRecord[]>([]);
