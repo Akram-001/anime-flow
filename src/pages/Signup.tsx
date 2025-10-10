@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { setDoc, doc } from "firebase/firestore";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +36,7 @@ export default function Signup() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       await updateProfile(user, { displayName: name });
+
       await setDoc(doc(db, "users", user.uid), {
         name,
         email,
@@ -39,6 +44,7 @@ export default function Signup() {
         banned: false,
         createdAt: serverTimestamp(),
       });
+
       toast.success("Account created!");
       navigate("/Profile");
     } catch (err: any) {
@@ -48,7 +54,6 @@ export default function Signup() {
     }
   };
 
-  // Google Sign-In
   const handleGoogleSignup = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
@@ -56,14 +61,17 @@ export default function Signup() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // create Firestore doc if not exists
-      await setDoc(doc(db, "users", user.uid), {
-        name: user.displayName,
-        email: user.email,
-        role: "user",
-        banned: false,
-        createdAt: serverTimestamp(),
-      }, { merge: true });
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name: user.displayName,
+          email: user.email,
+          role: "user",
+          banned: false,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       toast.success("Signed up with Google!");
       navigate("/Profile");
@@ -139,12 +147,7 @@ export default function Signup() {
             />
           </div>
 
-          <Button
-            type="submit"
-            variant="hero"
-            className="w-full"
-            disabled={loading}
-          >
+          <Button type="submit" variant="hero" className="w-full" disabled={loading}>
             {loading ? "Creating Account..." : "Sign Up"}
           </Button>
         </form>
