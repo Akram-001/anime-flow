@@ -1,8 +1,7 @@
-// src/pages/Login.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -19,12 +18,9 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    toast.dismiss();
-
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
-
       toast.success(`Welcome back, ${user.email}!`);
       navigate("/dashboard");
     } catch (err: any) {
@@ -45,17 +41,29 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    toast.dismiss();
     const provider = new GoogleAuthProvider();
-
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      toast.success(`Welcome, ${user.displayName || user.email}!`);
+
+      // create Firestore doc if not exists
+      await setDoc(
+        db.collection("users").doc(user.uid),
+        {
+          name: user.displayName,
+          email: user.email,
+          role: "user",
+          banned: false,
+          createdAt: new Date(),
+        },
+        { merge: true }
+      );
+
+      toast.success("Signed in with Google!");
       navigate("/dashboard");
     } catch (err: any) {
-      console.error(err);
-      toast.error("Google sign-in failed");
+      console.error("Google login error:", err);
+      toast.error(err.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -63,10 +71,13 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
-      <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Sign In</h1>
+      <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md animate-fade-in">
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
+          Sign In
+        </h1>
 
         <form onSubmit={handleLogin} className="space-y-5">
+          {/* Email */}
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -79,6 +90,7 @@ export default function Login() {
             />
           </div>
 
+          {/* Password */}
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -100,18 +112,23 @@ export default function Login() {
             </Button>
           </div>
 
-          <Button type="submit" variant="hero" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            variant="hero"
+            className="w-full"
+            disabled={loading}
+          >
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
 
         <Button
           variant="outline"
-          className="w-full py-2 flex items-center justify-center gap-2 mt-2"
+          className="w-full mt-3 flex items-center justify-center gap-2 py-2 border-gray-300 hover:bg-gray-100 transition-all duration-200 transform hover:-translate-y-1"
           onClick={handleGoogleLogin}
           disabled={loading}
         >
-          <img src="/icons/google.svg" alt="Google" className="w-5 h-5" />
+          <span className="text-red-500 font-bold text-lg">G</span>
           Sign In with Google
         </Button>
 
