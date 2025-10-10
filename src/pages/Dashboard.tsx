@@ -15,6 +15,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { Shield } from "lucide-react"; 
 import {
   collection,
   addDoc,
