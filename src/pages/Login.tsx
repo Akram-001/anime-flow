@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  signOut,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -20,7 +21,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // تسجيل دخول بإيميل وباسورد
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -30,6 +30,7 @@ export default function Login() {
       const user = userCredential.user;
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
+
       if (!userDoc.exists()) {
         toast.error("User data not found.");
         setLoading(false);
@@ -38,17 +39,22 @@ export default function Login() {
 
       const data = userDoc.data();
 
-      // 🚫 تحقق من banned
       if (data?.banned) {
-        await auth.signOut();
+        await signOut(auth);
+        toast("🚫 Your account is banned", {
+          description: "Contact the admin if this is a mistake.",
+          duration: 4000,
+        });
         setLoading(false);
-        toast("🚫 Your account is banned");
-        return;
+        return; // يبقى في صفحة تسجيل الدخول
       }
 
-      // ✅ تسجيل دخول ناجح
-      toast("👋 Welcome back!");
+      toast("👋 Welcome back!", {
+        description: "You are now logged in.",
+        duration: 3000,
+      });
       navigate("/Dashboard");
+
     } catch (err: any) {
       toast.error(err.message || "Login failed");
     } finally {
@@ -56,7 +62,6 @@ export default function Login() {
     }
   };
 
-  // تسجيل دخول جوجل
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
@@ -68,14 +73,21 @@ export default function Login() {
       const data = userDoc.data();
 
       if (data?.banned) {
-        await auth.signOut();
+        await signOut(auth);
+        toast("🚫 Your account is banned", {
+          description: "Contact the admin if this is a mistake.",
+          duration: 4000,
+        });
         setLoading(false);
-        toast("🚫 Your account is banned");
         return;
       }
 
-      toast("👋 Welcome back!");
+      toast("👋 Welcome back!", {
+        description: "You are now logged in.",
+        duration: 3000,
+      });
       navigate("/Dashboard");
+
     } catch (err: any) {
       toast.error(err.message || "Google login failed");
     } finally {
@@ -139,9 +151,7 @@ export default function Login() {
 
         <p className="text-center text-sm mt-4 text-gray-400">
           Don’t have an account?{" "}
-          <Link to="/signup" className="text-purple-400 hover:underline">
-            Sign Up
-          </Link>
+          <Link to="/signup" className="text-purple-400 hover:underline">Sign Up</Link>
         </p>
       </Card>
     </div>
