@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -16,6 +20,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // تسجيل دخول بإيميل وباسورد
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -25,7 +30,6 @@ export default function Login() {
       const user = userCredential.user;
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
-
       if (!userDoc.exists()) {
         toast.error("User data not found.");
         setLoading(false);
@@ -34,15 +38,15 @@ export default function Login() {
 
       const data = userDoc.data();
 
-      // 🚫 Banned user
+      // 🚫 تحقق من banned
       if (data?.banned) {
         await auth.signOut();
         setLoading(false);
         toast("🚫 Your account is banned");
-        return; // لا يسمح بالدخول
+        return;
       }
 
-      // ✅ Logged in
+      // ✅ تسجيل دخول ناجح
       toast("👋 Welcome back!");
       navigate("/Dashboard");
     } catch (err: any) {
@@ -52,6 +56,7 @@ export default function Login() {
     }
   };
 
+  // تسجيل دخول جوجل
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
