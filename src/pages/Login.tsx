@@ -53,7 +53,7 @@ export default function Login() {
         description: "You are now logged in.",
         duration: 3000,
       });
-      navigate("/Dashboard");
+      navigate("/Profile");
 
     } catch (err: any) {
       toast.error(err.message || "Login failed");
@@ -86,7 +86,7 @@ export default function Login() {
         description: "You are now logged in.",
         duration: 3000,
       });
-      navigate("/Dashboard");
+      navigate("/Profile");
 
     } catch (err: any) {
       toast.error(err.message || "Google login failed");
