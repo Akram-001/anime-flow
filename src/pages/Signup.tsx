@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -21,6 +26,7 @@ export default function Signup() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       setLoading(false);
@@ -30,6 +36,7 @@ export default function Signup() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
       await updateProfile(user, { displayName: name });
 
       await setDoc(doc(db, "users", user.uid), {
@@ -41,8 +48,8 @@ export default function Signup() {
         createdAt: serverTimestamp(),
       });
 
-      toast.success("Account created!");
-      navigate("/Profile");
+      toast.success("Account created successfully!");
+      navigate("/login"); // بعد التسجيل يرجع صفحة تسجيل الدخول
     } catch (err: any) {
       toast.error(err.message || "Registration failed");
     } finally {
@@ -67,11 +74,11 @@ export default function Signup() {
           banned: false,
           createdAt: serverTimestamp(),
         },
-        { merge: true }
+        { merge: true } // إذا موجود، لا يمسح باقي البيانات
       );
 
       toast.success("Signed up with Google!");
-      navigate("/Profile");
+      navigate("/login"); // بعد التسجيل يرجع صفحة تسجيل الدخول
     } catch (err: any) {
       toast.error(err.message || "Google sign-up failed");
     } finally {
