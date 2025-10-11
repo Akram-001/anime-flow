@@ -36,7 +36,6 @@ export default function Signup() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       await updateProfile(user, { displayName: name });
 
       await setDoc(doc(db, "users", user.uid), {
@@ -48,8 +47,8 @@ export default function Signup() {
         createdAt: serverTimestamp(),
       });
 
-      toast.success("Account created successfully!");
-      navigate("/login"); // بعد التسجيل يرجع صفحة تسجيل الدخول
+      toast.success("Account created! You can now log in.");
+      navigate("/login");
     } catch (err: any) {
       toast.error(err.message || "Registration failed");
     } finally {
@@ -60,6 +59,7 @@ export default function Signup() {
   const handleGoogleSignup = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
+
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -74,11 +74,11 @@ export default function Signup() {
           banned: false,
           createdAt: serverTimestamp(),
         },
-        { merge: true } // إذا موجود، لا يمسح باقي البيانات
+        { merge: true }
       );
 
-      toast.success("Signed up with Google!");
-      navigate("/login"); // بعد التسجيل يرجع صفحة تسجيل الدخول
+      toast.success("Signed up with Google! You can now log in.");
+      navigate("/login");
     } catch (err: any) {
       toast.error(err.message || "Google sign-up failed");
     } finally {
@@ -89,9 +89,7 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md animate-fade-in">
-        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
-          Create Account
-        </h1>
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Create Account</h1>
 
         <form onSubmit={handleRegister} className="space-y-5">
           <div className="relative">
@@ -168,9 +166,7 @@ export default function Signup() {
 
         <p className="text-center text-sm mt-4 text-gray-400">
           Already have an account?{" "}
-          <Link to="/login" className="text-purple-400 hover:underline">
-            Sign In
-          </Link>
+          <Link to="/login" className="text-purple-400 hover:underline">Sign In</Link>
         </p>
       </Card>
     </div>
