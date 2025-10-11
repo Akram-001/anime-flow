@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { AnimeCard } from "@/components/AnimeCard";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, TrendingUp, Sparkles, Clock } from "lucide-r
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Layout } from "@/components/Layout";
+import { toast } from "sonner";
 
 interface Anime {
   id: string;
@@ -30,29 +31,31 @@ interface SectionProps {
 }
 
 const AnimeSection = ({ title, icon, anime, className = "", loading }: SectionProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
 
   const scroll = (direction: "left" | "right") => {
-    const container = document.getElementById(`scroll-${title.replace(/\s+/g, "")}`);
-    if (container) {
-      const scrollAmount = 320;
-      const newPosition =
-        direction === "left"
-          ? Math.max(0, scrollPosition - scrollAmount)
-          : Math.min(container.scrollWidth - container.clientWidth, scrollPosition + scrollAmount);
+    const container = containerRef.current;
+    if (!container) return;
 
-      container.scrollTo({ left: newPosition, behavior: "smooth" });
-      setScrollPosition(newPosition);
-    }
+    const scrollAmount = 320;
+    const newPosition =
+      direction === "left"
+        ? Math.max(0, scrollPosition - scrollAmount)
+        : Math.min(container.scrollWidth - container.clientWidth, scrollPosition + scrollAmount);
+
+    container.scrollTo({ left: newPosition, behavior: "smooth" });
+    setScrollPosition(newPosition);
   };
 
   useEffect(() => {
-    const container = document.getElementById(`scroll-${title.replace(/\s+/g, "")}`);
+    const container = containerRef.current;
     if (!container) return;
+
     const handleScroll = () => setScrollPosition(container.scrollLeft);
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
-  }, [title]);
+  }, []);
 
   return (
     <section className={`py-12 ${className}`}>
@@ -65,12 +68,7 @@ const AnimeSection = ({ title, icon, anime, className = "", loading }: SectionPr
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => scroll("left")}
-              disabled={scrollPosition === 0}
-            >
+            <Button variant="outline" size="icon" onClick={() => scroll("left")} disabled={scrollPosition === 0}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <Button variant="outline" size="icon" onClick={() => scroll("right")}>
@@ -79,16 +77,16 @@ const AnimeSection = ({ title, icon, anime, className = "", loading }: SectionPr
           </div>
         </div>
 
-        {/* ✅ لو لودينج نعرض Skeleton */}
+        {/* Loading skeleton */}
         {loading ? (
           <div className="flex gap-6 overflow-x-auto">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex-none w-80 h-56 bg-gray-800 animate-pulse rounded-xl" />
             ))}
           </div>
-        ) : (
+        ) : anime.length > 0 ? (
           <div
-            id={`scroll-${title.replace(/\s+/g, "")}`}
+            ref={containerRef}
             className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
@@ -103,6 +101,11 @@ const AnimeSection = ({ title, icon, anime, className = "", loading }: SectionPr
                   <AnimeCard anime={{ ...item, image: item.image || "/fallback.jpg" }} />
                 </div>
               ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-6">No anime available.</p>
+            <Button variant="hero">Browse Anime</Button>
           </div>
         )}
       </div>
@@ -121,27 +124,20 @@ export const Home = () => {
     const fetchAnimes = async () => {
       try {
         const q = query(collection(db, "animes"), orderBy("createdAt", "desc"), limit(100));
-        const querySnapshot = await getDocs(q);
+        const snapshot = await getDocs(q);
 
         const list: Anime[] = [];
-        querySnapshot.forEach((doc) => {
+        snapshot.forEach((doc) => {
           const data = doc.data();
-
-          // ✅ تأكد أن الوثيقة صالحة
-          if (
-            data &&
-            data.title &&
-            data.image &&
-            !data.deleted &&
-            data.title !== "Ethereal Realms"
-          ) {
+          if (data && data.title && data.image && !data.deleted) {
             list.push({ id: doc.id, ...data } as Anime);
           }
         });
 
         setAnimes(list);
-      } catch (error) {
-        console.error("❌ خطأ في جلب الأنميات:", error);
+      } catch (error: any) {
+        console.error("Error fetching animes:", error);
+        toast.error("Failed to load animes.");
       } finally {
         setLoading(false);
       }
@@ -150,10 +146,8 @@ export const Home = () => {
     fetchAnimes();
   }, []);
 
-  // ✅ تأكد أن الهيرو يأخذ أنمي صالح فعلاً
   const validAnimes = animes.filter((a) => a.image && a.title);
   const latestAnime = validAnimes.length > 0 ? validAnimes[0] : null;
-
   const trendingAnime = validAnimes.filter((anime) => anime.isTrending);
   const newAnime = validAnimes.filter((anime) => anime.isNew);
   const allAnime = validAnimes;
@@ -165,7 +159,7 @@ export const Home = () => {
           isLoaded ? "opacity-100" : "opacity-0"
         }`}
       >
-        {/* ✅ آخر أنمي بالـ Hero (فقط لو صالح) */}
+        {/* Hero section */}
         {latestAnime && <HeroSection anime={latestAnime} />}
 
         <div className="relative z-10 bg-background/95 backdrop-blur-sm">
