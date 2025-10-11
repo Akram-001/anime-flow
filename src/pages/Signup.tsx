@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -23,11 +18,9 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // --- Handle email/password signup
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       setLoading(false);
@@ -37,53 +30,35 @@ export default function Signup() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       await updateProfile(user, { displayName: name });
 
-      // Check if user doc exists
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name,
+        email,
+        role: "user",
+        banned: false,
+        createdAt: serverTimestamp(),
+      });
 
-      if (!snap.exists()) {
-        await setDoc(userRef, {
-          uid: user.uid,
-          name,
-          email,
-          role: "user",
-          banned: false,
-          createdAt: serverTimestamp(),
-        });
-      }
-
-      setLoading(false);
-      setTimeout(() => toast.success("👋 Account created! Welcome!"), 100);
-      navigate("/Dashboard");
+      toast.success("Account created!");
+      navigate("/Profile");
     } catch (err: any) {
+      toast.error(err.message || "Registration failed");
+    } finally {
       setLoading(false);
-      toast.error(err.message || "Signup failed");
     }
   };
 
-  // --- Handle Google signup
   const handleGoogleSignup = async () => {
     setLoading(true);
+    const provider = new GoogleAuthProvider();
     try {
-      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
-
-      if (snap.exists() && snap.data().banned) {
-        await auth.signOut();
-        setLoading(false);
-        setTimeout(() => toast.error("🚫 Your account is banned."), 100);
-        return;
-      }
-
       await setDoc(
-        userRef,
+        doc(db, "users", user.uid),
         {
           uid: user.uid,
           name: user.displayName,
@@ -95,12 +70,12 @@ export default function Signup() {
         { merge: true }
       );
 
-      setLoading(false);
-      setTimeout(() => toast.success("👋 Signed up with Google! Welcome!"), 100);
-      navigate("/Dashboard");
+      toast.success("Signed up with Google!");
+      navigate("/Profile");
     } catch (err: any) {
-      setLoading(false);
       toast.error(err.message || "Google sign-up failed");
+    } finally {
+      setLoading(false);
     }
   };
 
