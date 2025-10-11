@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
+import { HeroSection } from "@/components/HeroSection";
 import { AnimeCard } from "@/components/AnimeCard";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Fire, Star, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Fire, Star, Clock, Sparkles } from "lucide-react";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
@@ -21,71 +22,94 @@ interface Anime {
   deleted?: boolean;
 }
 
-interface SectionProps {
+const AnimeSection = ({
+  title,
+  icon,
+  anime,
+  loading,
+}: {
   title: string;
+  icon: React.ReactNode;
   anime: Anime[];
   loading?: boolean;
-}
-
-const AnimeSection = ({ title, anime, loading }: SectionProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+}) => {
   const [scrollPos, setScrollPos] = useState(0);
 
   const scroll = (dir: "left" | "right") => {
-    const container = containerRef.current;
+    const container = document.getElementById(`scroll-${title.replace(/\s+/g, "")}`);
     if (!container) return;
-
-    const amount = 350;
-    const newPos = dir === "left" ? Math.max(0, scrollPos - amount) : Math.min(container.scrollWidth - container.clientWidth, scrollPos + amount);
+    const scrollAmount = 320;
+    const newPos =
+      dir === "left"
+        ? Math.max(0, scrollPos - scrollAmount)
+        : Math.min(container.scrollWidth - container.clientWidth, scrollPos + scrollAmount);
     container.scrollTo({ left: newPos, behavior: "smooth" });
     setScrollPos(newPos);
   };
 
   useEffect(() => {
-    const container = containerRef.current;
+    const container = document.getElementById(`scroll-${title.replace(/\s+/g, "")}`);
     if (!container) return;
-    const handler = () => setScrollPos(container.scrollLeft);
-    container.addEventListener("scroll", handler);
-    return () => container.removeEventListener("scroll", handler);
-  }, []);
+    const handleScroll = () => setScrollPos(container.scrollLeft);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [title]);
 
   return (
-    <section className="my-12">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl md:text-3xl font-bold gradient-text">{title}</h2>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="icon" onClick={() => scroll("left")}>
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => scroll("right")}>
-            <ChevronRight className="w-5 h-5" />
-          </Button>
+    <section className="py-12">
+      <div className="container mx-auto px-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            {icon}
+            <h2 className="text-3xl font-bold gradient-text">{title}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => scroll("left")}
+              disabled={scrollPos === 0}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => scroll("right")}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="flex gap-4 overflow-x-auto">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="w-64 h-80 bg-gray-800 animate-pulse rounded-xl" />
-          ))}
-        </div>
-      ) : anime.length > 0 ? (
-        <div ref={containerRef} className="flex gap-4 overflow-x-auto scrollbar-hide">
-          {anime.map((item) => (
-            <AnimeCard key={item.id} anime={item} className="w-64 hover:scale-105 transition-transform duration-300" />
-          ))}
-        </div>
-      ) : (
-        <p className="text-center text-muted-foreground mt-6">No anime found.</p>
-      )}
+        {loading ? (
+          <div className="flex gap-6 overflow-x-auto">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex-none w-80 h-56 bg-gray-800 animate-pulse rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div
+            id={`scroll-${title.replace(/\s+/g, "")}`}
+            className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth"
+          >
+            {anime
+              .filter((a) => a.image && a.title)
+              .map((a, idx) => (
+                <div
+                  key={a.id}
+                  className="flex-none w-80 transform transition-all duration-300 hover:scale-105"
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  <AnimeCard anime={a} />
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 };
 
 export const Home = () => {
-  const [loading, setLoading] = useState(true);
   const [animes, setAnimes] = useState<Anime[]>([]);
-  const [latest, setLatest] = useState<Anime | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAnimes = async () => {
@@ -99,51 +123,32 @@ export const Home = () => {
             list.push({ id: doc.id, ...data } as Anime);
           }
         });
-
-        if (list.length === 0) toast("No anime found.", { description: "Try again later.", duration: 3000 });
-
         setAnimes(list);
-        setLatest(list[0] || null);
       } catch (err) {
-        console.error(err);
-        toast.error("Failed to fetch animes.");
+        console.error("Error fetching animes:", err);
+        toast.error("Failed to load animes");
       } finally {
         setLoading(false);
       }
     };
-
     fetchAnimes();
   }, []);
 
   const trending = animes.filter((a) => a.isTrending);
   const newReleases = animes.filter((a) => a.isNew);
-  const popular = animes.filter((a) => a.rating && a.rating >= 8);
-  const topRated = animes.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  const topRated = [...animes].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+  const heroAnime = animes[0] || null;
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-gray-800 text-white">
-        {latest && (
-          <div
-            className="relative h-[450px] md:h-[600px] w-full bg-cover bg-center flex items-end p-6"
-            style={{ backgroundImage: `url(${latest.image})` }}
-          >
-            <div className="bg-black/50 p-4 rounded-lg max-w-xl">
-              <h1 className="text-3xl md:text-5xl font-bold">{latest.title}</h1>
-              <p className="mt-2 text-sm md:text-base">{latest.genre || "Genre unknown"}</p>
-              <Button variant="hero" className="mt-4">
-                Watch Now
-              </Button>
-            </div>
-          </div>
-        )}
+      <div className="min-h-screen bg-gradient-hero transition-opacity duration-1000 opacity-100">
+        {heroAnime && <HeroSection anime={heroAnime} />}
 
-        <div className="px-6 md:px-12 py-8">
-          <AnimeSection title="Trending Now" anime={trending} loading={loading} />
-          <AnimeSection title="New Releases" anime={newReleases} loading={loading} />
-          <AnimeSection title="Popular" anime={popular} loading={loading} />
-          <AnimeSection title="Top Rated" anime={topRated} loading={loading} />
-        </div>
+        <AnimeSection title="Trending Now" icon={<Fire className="w-8 h-8 text-warning" />} anime={trending} loading={loading} />
+        <AnimeSection title="New Releases" icon={<Sparkles className="w-8 h-8 text-primary" />} anime={newReleases} loading={loading} />
+        <AnimeSection title="Top Rated" icon={<Star className="w-8 h-8 text-accent" />} anime={topRated} loading={loading} />
+        <AnimeSection title="Continue Watching" icon={<Clock className="w-8 h-8 text-secondary" />} anime={animes.slice(0, 4)} loading={loading} />
       </div>
     </Layout>
   );
