@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { toast } from "sonner"; // ✅ Toast notifications
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
@@ -42,31 +42,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             banned: false,
             createdAt: serverTimestamp(),
           });
-          setUser(currentUser);
-          setLoading(false);
-          toast.success(`Welcome back, ${currentUser.email}!`);
-          return;
         }
 
-        const data = snap.data();
+        const data = snap.exists() ? snap.data() : { banned: false };
 
-        // 🚫 If user is banned → block immediately
         if (data?.banned) {
           await signOut(auth);
           setUser(null);
           setLoading(false);
-          toast.error("Your account has been banned.");
+          setTimeout(() => toast.error("🚫 Your account is banned."), 100);
           return;
         }
 
-        // ✅ Normal user
         setUser(currentUser);
         setLoading(false);
-        toast.success(`Welcome back, ${currentUser.email}!`);
-      } catch (err) {
-        console.error("Auth error:", err);
+        setTimeout(() => toast.success(`👋 Welcome back, ${currentUser.email || "User"}!`), 100);
+
+      } catch (error) {
+        console.error("Auth error:", error);
         setLoading(false);
-        toast.error("An error occurred while loading your account.");
+        setTimeout(() => toast.error("Error checking account."), 100);
       }
     });
 
@@ -78,9 +73,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success("You have logged out.");
   };
 
+  // Prevent white screen until Firebase loaded
+  if (loading) return null;
+
   return (
     <AuthContext.Provider value={{ user, logout, loading }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
