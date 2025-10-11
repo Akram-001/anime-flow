@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -20,7 +16,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // --- Handle login with email/password
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -30,6 +25,7 @@ export default function Login() {
       const user = userCredential.user;
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
+
       if (!userDoc.exists()) {
         toast.error("User data not found.");
         setLoading(false);
@@ -37,30 +33,25 @@ export default function Login() {
       }
 
       const data = userDoc.data();
+
+      // 🚫 Banned user
       if (data?.banned) {
         await auth.signOut();
         setLoading(false);
-        toast("🚫 Your account is banned", {
-          description: "Contact the admin if you think this is a mistake.",
-          duration: 4000,
-        });
-        return;
+        toast("🚫 Your account is banned");
+        return; // لا يسمح بالدخول
       }
 
-      // Login success
-      setLoading(false);
-      toast("👋 Welcome back!", {
-        description: "You are now logged in.",
-        duration: 3000,
-      });
+      // ✅ Logged in
+      toast("👋 Welcome back!");
       navigate("/Dashboard");
     } catch (err: any) {
-      setLoading(false);
       toast.error(err.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // --- Handle Google login
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
@@ -69,48 +60,28 @@ export default function Login() {
       const user = result.user;
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
-      const data = userDoc.exists() ? userDoc.data() : null;
+      const data = userDoc.data();
 
       if (data?.banned) {
         await auth.signOut();
         setLoading(false);
-        toast("🚫 Your account is banned", {
-          description: "Contact the admin if you think this is a mistake.",
-          duration: 4000,
-        });
+        toast("🚫 Your account is banned");
         return;
       }
 
-      // If new Google user, create Firestore doc
-      if (!data) {
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          name: user.displayName,
-          email: user.email,
-          role: "user",
-          banned: false,
-          createdAt: new Date(),
-        });
-      }
-
-      setLoading(false);
-      toast("👋 Welcome back!", {
-        description: "You are now logged in.",
-        duration: 3000,
-      });
+      toast("👋 Welcome back!");
       navigate("/Dashboard");
     } catch (err: any) {
-      setLoading(false);
       toast.error(err.message || "Google login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-6">
       <Card className="glass border border-primary/20 shadow-xl p-6 rounded-2xl w-full max-w-md animate-fade-in">
-        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">
-          Sign In
-        </h1>
+        <h1 className="text-2xl font-bold mb-6 text-center gradient-text">Sign In</h1>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="relative">
@@ -146,12 +117,7 @@ export default function Login() {
             </Button>
           </div>
 
-          <Button
-            type="submit"
-            variant="hero"
-            className="w-full"
-            disabled={loading}
-          >
+          <Button type="submit" variant="hero" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
