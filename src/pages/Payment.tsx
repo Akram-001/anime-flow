@@ -36,9 +36,9 @@ const FakePayment = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold gradient-text">Fake Checkout</h1>
+            <h1 className="text-4xl font-bold gradient-text">Checkout</h1>
             <p className="text-muted-foreground mt-2">
-              This is a decorative mock payment page — UI only, no real payments.
+              This page is for payment; if you are serious, continue reading. 
             </p>
           </div>
 
