@@ -28,7 +28,7 @@ const Payment = () => {
     setTimeout(() => {
       setProcessing(false);
       setDone(true);
-    }, 1000);
+    }, 900);
   };
 
   return (
@@ -37,33 +37,35 @@ const Payment = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-bold gradient-text">Checkout</h1>
-            <p className="text-muted-foreground mt-2">Choose your plan and complete your payment.</p>
+            <p className="text-muted-foreground mt-2">Choose your plan and finish payment.</p>
           </div>
 
           {!done ? (
             <form onSubmit={handlePayment} className="grid gap-6 md:grid-cols-2">
-              {/* Left: Plan */}
+              {/* LEFT: Plan */}
               <Card className="p-6 glass border-primary/20">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <CreditCard className="w-5 h-5" /> Selected Plan
                 </h2>
 
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {plans.map((p) => (
-                    <Button
-                      key={p.label}
-                      type="button"
-                      variant={plan === `${p.label} - ${p.price}` ? "default" : "outline"}
-                      className={`flex-1 min-w-[120px] ${
-                        plan === `${p.label} - ${p.price}` ? "border-primary" : "border-muted"
-                      }`}
-                      onClick={() => setPlan(`${p.label} - ${p.price}`)}
-                      disabled={processing}
-                    >
-                      {p.label}
-                      <span className="ml-1 text-xs text-muted-foreground">{p.price}</span>
-                    </Button>
-                  ))}
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {plans.map((p) => {
+                    const selected = plan === `${p.label} - ${p.price}`;
+                    return (
+                      <Button
+                        key={p.label}
+                        type="button"
+                        onClick={() => setPlan(`${p.label} - ${p.price}`)}
+                        disabled={processing}
+                        variant={selected ? "default" : "outline"}
+                        className={`flex-1 min-w-[120px] h-[70px] flex flex-col justify-center items-center transition-all duration-300
+                          ${selected ? "ring-2 ring-primary border-primary" : "border-muted hover:ring-1 hover:ring-primary/50"}`}
+                      >
+                        <span className="text-sm font-medium">{p.label}</span>
+                        <span className="text-xs text-muted-foreground">{p.price}</span>
+                      </Button>
+                    );
+                  })}
                 </div>
 
                 <div className="p-3 rounded border bg-muted/10">
@@ -77,7 +79,7 @@ const Payment = () => {
                 </div>
               </Card>
 
-              {/* Right: Billing */}
+              {/* RIGHT: Billing */}
               <Card className="p-6 glass border-primary/20">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <Clock className="w-5 h-5" />
